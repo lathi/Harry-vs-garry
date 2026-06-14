@@ -339,7 +339,7 @@ function updateDb(matchId, data) {
 
 // --- SCORING & LOGIC ---
 function getResult(h, a) { return (h > a) ? 'H' : (a > h) ? 'A' : 'D'; }
-function goalDiff(predH, predA, actualH, actualA) { return Math.abs(Math.abs(predH - actualH) + Math.abs(predA - actualA)); }
+function goalDiff(predH, predA, actualH, actualA) { return (Math.abs(predH - actualH) + Math.abs(predA - actualA)); }
 
 function calcPoints(m) {
   const ms = state.matches[m.id];
@@ -351,6 +351,7 @@ function calcPoints(m) {
 
   let harryPts = 0, garryPts = 0;
   const harryHasPred = hH >= 0 && hA >= 0, garryHasPred = gH >= 0 && gA >= 0;
+  updateDb(mId,{hhp:harryHasPred,ghp:garryHasPred});
 
   if (harryHasPred && getResult(hH, hA) === actualRes) harryPts += 10;
   if (garryHasPred && getResult(gH, gA) === actualRes) garryPts += 10;
@@ -419,7 +420,7 @@ function submitScore(mId) {
       actualH: h, 
       actualA: a, 
       harryPts: pts.harryPts, 
-      garryPts: pts.garryPts 
+      garryPts: pts.garryPts
   });
   
   showToast('Saved!');
