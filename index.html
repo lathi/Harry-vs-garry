@@ -177,7 +177,7 @@ const firebaseConfig = {
     messagingSenderId: "736527270681",
     appId: "1:736527270681:web:d8a0a2731c59f7a071bb88",
     measurementId: "G-ZGXCS3202B"
-  };
+};
 
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
@@ -185,3 +185,102 @@ const db = firebase.database();
 // --- DATA & STATE ---
 const FLAGS = { 'Mexico': '🇲🇽', 'South Africa': '🇿🇦', 'South Korea': '🇰🇷', 'Czechia': '🇨🇿', 'Canada': '🇨🇦', 'Switzerland': '🇨🇭', 'Qatar': '🇶🇦', 'Bosnia and Herzegovina': '🇧🇦', 'Brazil': '🇧🇷', 'Morocco': '🇲🇦', 'Scotland': '🏴󠁧󠁢󠁳󠁣󠁴󠁿', 'Haiti': '🇭🇹', 'USA': '🇺🇸', 'Paraguay': '🇵🇾', 'Australia': '🇦🇺', 'Türkiye': '🇹🇷', 'Germany': '🇩🇪', 'Curaçao': '🇨🇼', 'Ivory Coast': '🇨🇮', 'Ecuador': '🇪🇨', 'Netherlands': '🇳🇱', 'Japan': '🇯🇵', 'Sweden': '🇸🇪', 'Tunisia': '🇹🇳', 'Belgium': '🇧🇪', 'Iran': '🇮🇷', 'Egypt': '🇪🇬', 'New Zealand': '🇳🇿', 'Spain': '🇪🇸', 'Cape Verde': '🇨🇻', 'Saudi Arabia': '🇸🇦', 'Uruguay': '🇺🇾', 'France': '🇫🇷', 'Senegal': '🇸🇳', 'Iraq': '🇮🇶', 'Norway': '🇳🇴', 'Argentina': '🇦🇷', 'Algeria': '🇩🇿', 'Austria': '🇦🇹', 'Jordan': '🇯🇴', 'Portugal': '🇵🇹', 'DR Congo': '🇨🇩', 'Uzbekistan': '🇺🇿', 'Colombia': '🇨🇴', 'England': '🏴󠁧󠁢󠁥󠁮󠁧󠁿', 'Croatia': '🇭🇷', 'Ghana': '🇬🇭', 'Panama': '🇵🇦' };
 const GROUPS = { A: { teams: ['Mexico','South Korea','South Africa','Czechia'], matches: [{ id:'A1', date:'Jun 11', home:'Mexico', away:'South Africa' }, { id:'A2', date:'Jun 12', home:'South Korea', away:'Czechia' }, { id:'A3', date:'Jun 18', home:'Czechia', away:'South Africa' }, { id:'A4', date:'Jun 19', home:'Mexico', away:'South Korea' }, { id:'A5', date:'Jun 25', home:'Czechia', away:'Mexico' }, { id:'A6', date:'Jun 25', home:'South Africa', away:'South Korea' }] }, B: { teams: ['Canada','Switzerland','Qatar','Bosnia and Herzegovina'], matches: [{ id:'B1', date:'Jun 12', home:'Canada', away:'Bosnia and Herzegovina' }, { id:'B2', date:'Jun 13', home:'Qatar', away:'Switzerland' }, { id:'B3', date:'Jun 18', home:'Switzerland', away:'Bosnia and Herzegovina' }, { id:'B4', date:'Jun 18', home:'Canada', away:'Qatar' }, { id:'B5', date:'Jun 24', home:'Switzerland', away:'Canada' }, { id:'B6', date:'Jun 24', home:'Bosnia and Herzegovina', away:'Qatar' }] }, C: { teams: ['Brazil','Morocco','Scotland','Haiti'], matches: [{ id:'C1', date:'Jun 13', home:'Brazil', away:'Morocco' }, { id:'C2', date:'Jun 14', home:'Haiti', away:'Scotland' }, { id:'C3', date:'Jun 19', home:'Brazil', away:'Haiti' }, { id:'C4', date:'Jun 19', home:'Scotland', away:'Morocco' }, { id:'C5', date:'Jun 24', home:'Scotland', away:'Brazil' }, { id:'C6', date:'Jun 24', home:'Morocco', away:'Haiti' }] }, D: { teams: ['USA','Australia','Paraguay','Türkiye'], matches: [{ id:'D1', date:'Jun 13', home:'USA', away:'Paraguay' }, { id:'D2', date:'Jun 14', home:'Australia', away:'Türkiye' }, { id:'D3', date:'Jun 19', home:'USA', away:'Australia' }, { id:'D4', date:'Jun 20', home:'Türkiye', away:'Paraguay' }, { id:'D5', date:'Jun 26', home:'Türkiye', away:'USA' }, { id:'D6', date:'Jun 26', home:'Paraguay', away:'Australia' }] }, E: { teams: ['Germany','Ecuador','Ivory Coast','Curaçao'], matches: [{ id:'E1', date:'Jun 14', home:'Germany', away:'Curaçao' }, { id:'E2', date:'Jun 15', home:'Ivory Coast', away:'Ecuador' }, { id:'E3', date:'Jun 20', home:'Germany', away:'Ivory Coast' }, { id:'E4', date:'Jun 21', home:'Ecuador', away:'Curaçao' }, { id:'E5', date:'Jun 25', home:'Curaçao', away:'Ivory Coast' }, { id:'E6', date:'Jun 25', home:'Ecuador', away:'Germany' }] }, F: { teams: ['Netherlands','Japan','Sweden','Tunisia'], matches: [{ id:'F1', date:'Jun 14', home:'Netherlands', away:'Japan' }, { id:'F2', date:'Jun 15', home:'Sweden', away:'Tunisia' }, { id:'F3', date:'Jun 20', home:'Netherlands', away:'Sweden' }, { id:'F4', date:'Jun 21', home:'Tunisia', away:'Japan' }, { id:'F5', date:'Jun 26', home:'Tunisia', away:'Netherlands' }, { id:'F6', date:'Jun 26', home:'Japan', away:'Sweden' }] }, G: { teams: ['Belgium','Iran','Egypt','New Zealand'], matches: [{ id:'G1', date:'Jun 15', home:'Belgium', away:'Egypt' }, { id:'G2', date:'Jun 16', home:'Iran', away:'New Zealand' }, { id:'G3', date:'Jun 21', home:'Belgium', away:'Iran' }, { id:'G4', date:'Jun 22', home:'New Zealand', away:'Egypt' }, { id:'G5', date:'Jun 27', home:'New Zealand', away:'Belgium' }, { id:'G6', date:'Jun 27', home:'Egypt', away:'Iran' }] }, H: { teams: ['Spain','Uruguay','Saudi Arabia','Cape Verde'], matches: [{ id:'H1', date:'Jun 15', home:'Spain', away:'Cape Verde' }, { id:'H2', date:'Jun 15', home:'Saudi Arabia', away:'Uruguay' }, { id:'H3', date:'Jun 21', home:'Uruguay', away:'Cape Verde' }, { id:'H4', date:'Jun 21', home:'Spain', away:'Saudi Arabia' }, { id:'H5', date:'Jun 27', home:'Cape Verde', away:'Saudi Arabia' }, { id:'H6', date:'Jun 27', home:'Uruguay', away:'Spain' }] }, I: { teams: ['France','Senegal','Iraq','Norway'], matches: [{ id:'I1', date:'Jun 16', home:'France', away:'Senegal' }, { id:'I2', date:'Jun 16', home:'Iraq', away:'Norway' }, { id:'I3', date:'Jun 22', home:'Norway', away:'Senegal' }, { id:'I4', date:'Jun 22', home:'France', away:'Iraq' }, { id:'I5', date:'Jun 26', home:'Senegal', away:'France' }, { id:'I6', date:'Jun 26', home:'Norway', away:'Iraq' }] }, J: { teams: ['Argentina','Algeria','Austria','Jordan'], matches: [{ id:'J1', date:'Jun 16', home:'Argentina', away:'Algeria' }, { id:'J2', date:'Jun 17', home:'Austria', away:'Jordan' }, { id:'J3', date:'Jun 22', home:'Argentina', away:'Austria' }, { id:'J4', date:'Jun 22', home:'Jordan', away:'Algeria' }, { id:'J5', date:'Jun 27', home:'Algeria', away:'Austria' }, { id:'J6', date:'Jun 27', home:'Jordan', away:'Argentina' }] }, K: { teams: ['Portugal','DR Congo','Uzbekistan','Colombia'], matches: [{ id:'K1', date:'Jun 17', home:'Portugal', away:'DR Congo' }, { id:'K2', date:'Jun 18', home:'Uzbekistan', away:'Colombia' }, { id:'K3', date:'Jun 23', home:'Portugal', away:'Uzbekistan' }, { id:'K4
+let state = { matches: {} };
+let pendingClearId = null;
+let currentGroup = 'A';
+
+// --- DATABASE SYNC ---
+db.ref('matches').on('value', (snapshot) => {
+  const data = snapshot.val();
+  state.matches = data || {};
+  renderAll();
+  showGroup(currentGroup);
+});
+
+function updateDb(matchId, data) {
+  db.ref('matches/' + matchId).update(data);
+}
+
+// --- SCORING & LOGIC ---
+function getResult(h, a) { return (h > a) ? 'H' : (a > h) ? 'A' : 'D'; }
+function goalDiff(predH, predA, actualH, actualA) { return Math.abs(Math.abs(predH - predA) - Math.abs(actualH - actualA)) + Math.abs((predH + predA) - (actualH + actualA)); }
+
+function calcPoints(m) {
+  const ms = state.matches[m.id];
+  if (!ms || ms.actualH === null || ms.actualA === null) return { harryPts: 0, garryPts: 0 };
+
+  const aH = ms.actualH, aA = ms.actualA, actualRes = getResult(aH, aA);
+  const hH = parseInt(ms.harryH || -1), hA = parseInt(ms.harryA || -1);
+  const gH = parseInt(ms.garryH || -1), gA = parseInt(ms.garryA || -1);
+
+  let harryPts = 0, garryPts = 0;
+  const harryHasPred = hH >= 0 && hA >= 0, garryHasPred = gH >= 0 && gA >= 0;
+
+  if (harryHasPred && getResult(hH, hA) === actualRes) harryPts += 10;
+  if (garryHasPred && getResult(gH, gA) === actualRes) garryPts += 10;
+  if (harryHasPred && hH === aH && hA === aA) harryPts += 10;
+  if (garryHasPred && gH === aH && gA === aA) garryPts += 10;
+
+  if (! (harryHasPred && hH === aH && hA === aA) && ! (garryHasPred && gH === aH && gA === aA)) {
+    if (harryHasPred && garryHasPred) {
+      const hDiff = goalDiff(hH, hA, aH, aA), gDiff = goalDiff(gH, gA, aH, aA);
+      if (hDiff < gDiff) harryPts += 5; else if (gDiff < hDiff) garryPts += 5;
+    } else if (harryHasPred) harryPts += 5; else if (garryHasPred) garryPts += 5;
+  }
+  return { harryPts, garryPts };
+}
+
+// --- UI & INTERACTIONS ---
+function findMatch(id) { for (let g in GROUPS) { for (let m of GROUPS[g].matches) if (m.id === id) return m; } }
+function showGroup(g) { currentGroup = g; document.querySelectorAll('.group-panel').forEach(p => p.classList.toggle('active', p.id === 'group-' + g)); document.querySelectorAll('.tab').forEach((t, i) => t.classList.toggle('active', 'ABCDEFGHIJKL'[i] === g)); }
+function showToast(msg) { const t = document.getElementById('toast'); t.textContent = msg; t.classList.add('show'); setTimeout(() => t.classList.remove('show'), 2200); }
+function renderAll() {
+  const content = document.getElementById('content'); content.innerHTML = '';
+  Object.entries(GROUPS).forEach(([g, gd]) => {
+    const panel = document.createElement('div'); panel.className = 'group-panel' + (g === currentGroup ? ' active' : ''); panel.id = 'group-' + g;
+    let html = `<div class="group-header"><div class="group-badge">GROUP ${g}</div></div>`;
+    gd.matches.forEach(m => {
+      const ms = state.matches[m.id] || { harryH:'', harryA:'', garryH:'', garryA:'', actualH:null, actualA:null };
+      const pts = calcPoints(m);
+      html += `
+        <div class="fixture-card ${ms.actualH !== null ? 'completed' : ''}" id="card-${m.id}">
+          <div class="fixture-meta"><div class="fixture-date">${m.date}</div></div>
+          <div class="match-row"><div class="team-name team-home">${m.home}</div><div class="score-display"><div class="score-box">${ms.actualH !== null ? ms.actualH : '?'}</div><div class="score-dash">–</div><div class="score-box">${ms.actualA !== null ? ms.actualA : '?'}</div></div><div class="team-name team-away">${m.away}</div></div>
+          <div class="actual-score-row"><input class="score-input" type="number" id="act-${m.id}-h" value="${ms.actualH ?? ''}"><input class="score-input" type="number" id="act-${m.id}-a" value="${ms.actualA ?? ''}"><button class="submit-btn" onclick="submitScore('${m.id}')">Set</button></div>
+          <div class="predictions-area">
+            <div class="prediction-block harry-pred"><div class="pred-player-label">Harry</div><input class="pred-input" value="${ms.harryH}" onchange="savePred('${m.id}')" id="p1-${m.id}-h"><input class="pred-input" value="${ms.harryA}" onchange="savePred('${m.id}')" id="p1-${m.id}-a"><div class="pred-points">${pts.harryPts > 0 ? '+'+pts.harryPts : ''}</div></div>
+            <div class="prediction-block garry-pred"><div class="pred-player-label">Garry</div><input class="pred-input" value="${ms.garryH}" onchange="savePred('${m.id}')" id="p2-${m.id}-h"><input class="pred-input" value="${ms.garryA}" onchange="savePred('${m.id}')" id="p2-${m.id}-a"><div class="pred-points">${pts.garryPts > 0 ? '+'+pts.garryPts : ''}</div></div>
+          </div>
+        </div>`;
+    });
+    panel.innerHTML = html; content.appendChild(panel);
+  });
+  updateScoreboard();
+}
+
+function savePred(mId) {
+  updateDb(mId, { harryH: document.getElementById('p1-'+mId+'-h').value, harryA: document.getElementById('p1-'+mId+'-a').value, garryH: document.getElementById('p2-'+mId+'-h').value, garryA: document.getElementById('p2-'+mId+'-a').value });
+}
+
+function submitScore(mId) {
+  const h = parseInt(document.getElementById('act-'+mId+'-h').value), a = parseInt(document.getElementById('act-'+mId+'-a').value);
+  const pts = calcPoints(findMatch(mId));
+  updateDb(mId, { actualH: h, actualA: a, harryPts: pts.harryPts, garryPts: pts.garryPts });
+  showToast('Saved!');
+}
+
+function updateScoreboard() {
+  let hT = 0, gT = 0;
+  for (let id in state.matches) { hT += (state.matches[id].harryPts || 0); gT += (state.matches[id].garryPts || 0); }
+  document.getElementById('harry-total').textContent = hT; document.getElementById('garry-total').textContent = gT;
+  document.getElementById('harry-score-card').classList.toggle('leading', hT > gT); document.getElementById('garry-score-card').classList.toggle('leading', gT > hT);
+}
+
+function openRules() { document.getElementById('rules-modal-overlay').classList.add('open'); }
+function closeRules() { document.getElementById('rules-modal-overlay').classList.remove('open'); }
+function openClear(id) { pendingClearId = id; document.getElementById('clear-modal').classList.add('open'); }
+function closeClearModal() { document.getElementById('clear-modal').classList.remove('open'); }
+function confirmClear() { updateDb(pendingClearId, { actualH: null, actualA: null, harryPts: 0, garryPts: 0 }); closeClearModal(); }
+</script>
+</body>
+</html>
