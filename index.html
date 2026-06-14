@@ -417,6 +417,13 @@ function closeRules() { document.getElementById('rules-modal-overlay').classList
 function openClear(id) { pendingClearId = id; document.getElementById('clear-modal').classList.add('open'); }
 function closeClearModal() { document.getElementById('clear-modal').classList.remove('open'); }
 function confirmClear() { updateDb(pendingClearId, { actualH: null, actualA: null, harryPts: 0, garryPts: 0 }); closeClearModal(); }
+db.ref('matches').on('value', (snapshot) => {
+  console.log("Data from Firebase:", snapshot.val()); // <--- ADD THIS
+  const data = snapshot.val();
+  state.matches = data || {};
+  renderAll();
+  showGroup(currentGroup);
+});
 </script>
 </body>
 </html>
