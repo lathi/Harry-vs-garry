@@ -381,7 +381,7 @@ function renderAll() {
       html += `
         <div class="fixture-card ${ms.actualH !== null ? 'completed' : ''}" id="card-${m.id}">
           <div class="fixture-meta"><div class="fixture-date">${m.date}</div></div>
-          <div class="match-row"><div class="team-name team-home">${m.home}</div><div class="score-display"><div class="score-box">${ms.actualH !== null ? ms.actualH : '?'}</div><div class="score-dash">–</div><div class="score-box">${ms.actualA !== null ? ms.actualA : '?'}</div></div><div class="team-name team-away">${m.away}</div></div>
+          <div class="match-row"><div class="team-name team-home">${m.home}</div><div class="score-display"><div class="score-box">${ms.actualH !== null ? ms.actualH : ''}</div><div class="score-dash">–</div><div class="score-box">${ms.actualA !== null ? ms.actualA : ''}</div></div><div class="team-name team-away">${m.away}</div></div>
           <div class="actual-score-row"><input class="score-input" type="number" id="act-${m.id}-h" value="${ms.actualH ?? ''}"><input class="score-input" type="number" id="act-${m.id}-a" value="${ms.actualA ?? ''}"><button class="submit-btn" onclick="submitScore('${m.id}')">Set</button></div>
           <div class="predictions-area">
             <div class="prediction-block harry-pred"><div class="pred-player-label">Harry</div><input class="pred-input" value="${ms.harryH}" onchange="savePred('${m.id}')" id="p1-${m.id}-h"><input class="pred-input" value="${ms.harryA}" onchange="savePred('${m.id}')" id="p1-${m.id}-a"><div class="pred-points">${pts.harryPts > 0 ? '+'+pts.harryPts : ''}</div></div>
