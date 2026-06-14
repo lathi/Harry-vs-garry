@@ -361,6 +361,7 @@ function calcPoints(m) {
     if (harryHasPred && garryHasPred) {
       const hDiff = goalDiff(hH, hA, aH, aA), gDiff = goalDiff(gH, gA, aH, aA);
       if (hDiff < gDiff) harryPts += 5; else if (gDiff < hDiff) garryPts += 5;
+      else { harryPts += 5; garryPts += 5; }
     } else if (harryHasPred) harryPts += 5; else if (garryHasPred) garryPts += 5;
   }
   return { harryPts, garryPts };
@@ -399,9 +400,28 @@ function savePred(mId) {
 }
 
 function submitScore(mId) {
-  const h = parseInt(document.getElementById('act-'+mId+'-h').value), a = parseInt(document.getElementById('act-'+mId+'-a').value);
+  // const h = parseInt(document.getElementById('act-'+mId+'-h').value), a = parseInt(document.getElementById('act-'+mId+'-a').value);
+  // const pts = calcPoints(findMatch(mId));
+  // updateDb(mId, { actualH: h, actualA: a, harryPts: pts.harryPts, garryPts: pts.garryPts });
+  // showToast('Saved!');
+  const h = parseInt(document.getElementById('act-'+mId+'-h').value);
+  const a = parseInt(document.getElementById('act-'+mId+'-a').value);
+  
+  // 1. Manually update the state locally so calcPoints sees the new actuals immediately
+  state.matches[mId].actualH = h;
+  state.matches[mId].actualA = a;
+  
+  // 2. Now calculate points using the updated state
   const pts = calcPoints(findMatch(mId));
-  updateDb(mId, { actualH: h, actualA: a, harryPts: pts.harryPts, garryPts: pts.garryPts });
+  
+  // 3. Save to Firebase
+  updateDb(mId, { 
+      actualH: h, 
+      actualA: a, 
+      harryPts: pts.harryPts, 
+      garryPts: pts.garryPts 
+  });
+  
   showToast('Saved!');
 }
 
