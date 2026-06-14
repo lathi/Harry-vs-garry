@@ -1,0 +1,1273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>⚽ WC2026 Predictor — Harry vs Garry</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap');
+
+  :root {
+    --bg: #0a0e1a;
+    --surface: #111827;
+    --surface2: #1a2338;
+    --border: #1f2d47;
+    --gold: #f5c518;
+    --gold2: #e0a800;
+    --cyan: #00d4ff;
+    --green: #22c55e;
+    --red: #ef4444;
+    --muted: #6b7280;
+    --text: #f1f5f9;
+    --text2: #94a3b8;
+    --harry: #3b82f6;
+    --garry: #ec4899;
+    --radius: 12px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* HEADER */
+  header {
+    background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%);
+    border-bottom: 2px solid var(--gold);
+    padding: 20px 16px 16px;
+    text-align: center;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .header-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    letter-spacing: 3px;
+    color: var(--gold);
+    line-height: 1;
+  }
+
+  .header-sub {
+    font-size: 11px;
+    color: var(--text2);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-top: 4px;
+  }
+
+  /* SCOREBOARD */
+  .scoreboard {
+    display: flex;
+    gap: 10px;
+    padding: 14px 16px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 78px;
+    z-index: 99;
+  }
+
+  .player-score {
+    flex: 1;
+    border-radius: var(--radius);
+    padding: 12px 10px;
+    text-align: center;
+    border: 2px solid transparent;
+    transition: all 0.3s;
+  }
+
+  .player-score.harry {
+    background: linear-gradient(135deg, rgba(59,130,246,0.15), rgba(59,130,246,0.05));
+    border-color: rgba(59,130,246,0.4);
+  }
+
+  .player-score.garry {
+    background: linear-gradient(135deg, rgba(236,72,153,0.15), rgba(236,72,153,0.05));
+    border-color: rgba(236,72,153,0.4);
+  }
+
+  .player-score.leading {
+    transform: scale(1.02);
+  }
+
+  .player-score.harry.leading { border-color: var(--harry); }
+  .player-score.garry.leading { border-color: var(--garry); }
+
+  .player-name {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+
+  .harry .player-name { color: var(--harry); }
+  .garry .player-name { color: var(--garry); }
+
+  .player-pts {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 38px;
+    letter-spacing: 1px;
+    line-height: 1;
+  }
+
+  .harry .player-pts { color: var(--harry); }
+  .garry .player-pts { color: var(--garry); }
+
+  .player-breakdown {
+    font-size: 10px;
+    color: var(--text2);
+    margin-top: 3px;
+  }
+
+  .vs-badge {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    flex-shrink: 0;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 18px;
+    color: var(--muted);
+    letter-spacing: 1px;
+  }
+
+  /* TABS */
+  .tabs {
+    display: flex;
+    overflow-x: auto;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    gap: 0;
+    scrollbar-width: none;
+    padding: 0 8px;
+  }
+  .tabs::-webkit-scrollbar { display: none; }
+
+  .tab {
+    flex-shrink: 0;
+    padding: 10px 14px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    color: var(--muted);
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    transition: all 0.2s;
+    white-space: nowrap;
+    background: none;
+    border-top: none;
+    border-left: none;
+    border-right: none;
+  }
+
+  .tab.active {
+    color: var(--gold);
+    border-bottom-color: var(--gold);
+  }
+
+  /* GROUP SECTIONS */
+  .content {
+    padding: 0 0 80px;
+  }
+
+  .group-panel { display: none; }
+  .group-panel.active { display: block; }
+
+  .group-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 16px 10px;
+  }
+
+  .group-badge {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    color: var(--gold);
+    letter-spacing: 2px;
+    background: rgba(245,197,24,0.1);
+    border: 1px solid rgba(245,197,24,0.3);
+    border-radius: 8px;
+    padding: 2px 10px;
+  }
+
+  .group-teams {
+    font-size: 11px;
+    color: var(--text2);
+    line-height: 1.6;
+  }
+
+  /* FIXTURE CARD */
+  .fixture-card {
+    margin: 0 12px 10px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+
+  .fixture-card.completed {
+    border-color: rgba(34,197,94,0.3);
+  }
+
+  .fixture-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px 6px;
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .fixture-date {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--text2);
+  }
+
+  .fixture-status {
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 20px;
+    letter-spacing: 0.5px;
+  }
+
+  .fixture-status.pending {
+    background: rgba(107,114,128,0.2);
+    color: var(--muted);
+  }
+
+  .fixture-status.done {
+    background: rgba(34,197,94,0.15);
+    color: var(--green);
+  }
+
+  /* MATCH ROW */
+  .match-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 12px 8px;
+  }
+
+  .team-name {
+    font-size: 13px;
+    font-weight: 600;
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .team-home { text-align: right; }
+  .team-away { text-align: left; }
+
+  .score-display {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+  }
+
+  .score-box {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 20px;
+    color: var(--text);
+  }
+
+  .score-dash {
+    color: var(--muted);
+    font-weight: 700;
+    font-size: 14px;
+  }
+
+  /* ACTUAL SCORE INPUT */
+  .actual-score-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 6px 12px 4px;
+  }
+
+  .actual-label {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--gold);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    flex: 1;
+    text-align: right;
+  }
+
+  .actual-inputs {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .score-input {
+    width: 36px;
+    height: 36px;
+    border: 2px solid var(--gold2);
+    border-radius: 8px;
+    background: rgba(245,197,24,0.08);
+    color: var(--gold);
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    text-align: center;
+    outline: none;
+    transition: border-color 0.2s, background 0.2s;
+    -moz-appearance: textfield;
+  }
+
+  .score-input::-webkit-inner-spin-button,
+  .score-input::-webkit-outer-spin-button { -webkit-appearance: none; }
+
+  .score-input:focus {
+    border-color: var(--gold);
+    background: rgba(245,197,24,0.15);
+  }
+
+  .submit-btn {
+    padding: 6px 14px;
+    background: var(--gold);
+    color: #000;
+    border: none;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    letter-spacing: 0.5px;
+    flex-shrink: 0;
+    transition: background 0.2s, transform 0.1s;
+  }
+
+  .submit-btn:active { transform: scale(0.97); }
+  .submit-btn:hover { background: var(--gold2); }
+
+  .clear-btn {
+    padding: 6px 10px;
+    background: rgba(239,68,68,0.15);
+    color: var(--red);
+    border: 1px solid rgba(239,68,68,0.3);
+    border-radius: 8px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background 0.2s;
+  }
+
+  .clear-btn:hover { background: rgba(239,68,68,0.25); }
+
+  /* PREDICTIONS SECTION */
+  .predictions-area {
+    display: flex;
+    gap: 8px;
+    padding: 6px 12px 10px;
+  }
+
+  .prediction-block {
+    flex: 1;
+    border-radius: 8px;
+    padding: 8px 10px;
+    border: 1px solid transparent;
+  }
+
+  .prediction-block.harry-pred {
+    background: rgba(59,130,246,0.07);
+    border-color: rgba(59,130,246,0.2);
+  }
+
+  .prediction-block.garry-pred {
+    background: rgba(236,72,153,0.07);
+    border-color: rgba(236,72,153,0.2);
+  }
+
+  .pred-player-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+
+  .harry-pred .pred-player-label { color: var(--harry); }
+  .garry-pred .pred-player-label { color: var(--garry); }
+
+  .pred-score-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 6px;
+  }
+
+  .pred-input {
+    width: 32px;
+    height: 32px;
+    border: 1px solid;
+    border-radius: 6px;
+    background: transparent;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 20px;
+    text-align: center;
+    outline: none;
+    transition: all 0.2s;
+    -moz-appearance: textfield;
+  }
+
+  .pred-input::-webkit-inner-spin-button,
+  .pred-input::-webkit-outer-spin-button { -webkit-appearance: none; }
+
+  .harry-pred .pred-input {
+    border-color: rgba(59,130,246,0.4);
+    color: var(--harry);
+  }
+
+  .garry-pred .pred-input {
+    border-color: rgba(236,72,153,0.4);
+    color: var(--garry);
+  }
+
+  .harry-pred .pred-input:focus { border-color: var(--harry); background: rgba(59,130,246,0.1); }
+  .garry-pred .pred-input:focus { border-color: var(--garry); background: rgba(236,72,153,0.1); }
+
+  .pred-dash { color: var(--muted); font-size: 12px; font-weight: 700; }
+
+  .pred-points {
+    font-size: 11px;
+    font-weight: 600;
+    min-height: 16px;
+  }
+
+  .harry-pred .pred-points { color: var(--harry); }
+  .garry-pred .pred-points { color: var(--garry); }
+
+  /* TOAST */
+  .toast {
+    position: fixed;
+    bottom: 80px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--surface);
+    border: 1px solid var(--gold);
+    color: var(--gold);
+    padding: 10px 20px;
+    border-radius: 30px;
+    font-size: 13px;
+    font-weight: 600;
+    opacity: 0;
+    transition: all 0.3s;
+    pointer-events: none;
+    z-index: 999;
+    white-space: nowrap;
+  }
+
+  .toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  /* MODAL */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 200;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+
+  .modal-overlay.open { display: flex; }
+
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 24px 20px;
+    width: 100%;
+    max-width: 360px;
+    text-align: center;
+  }
+
+  .modal h3 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    color: var(--gold);
+    letter-spacing: 2px;
+    margin-bottom: 8px;
+  }
+
+  .modal p {
+    font-size: 13px;
+    color: var(--text2);
+    margin-bottom: 20px;
+    line-height: 1.5;
+  }
+
+  .modal-btns {
+    display: flex;
+    gap: 10px;
+  }
+
+  .modal-cancel {
+    flex: 1;
+    padding: 10px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text2);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .modal-confirm {
+    flex: 1;
+    padding: 10px;
+    background: rgba(239,68,68,0.15);
+    border: 1px solid rgba(239,68,68,0.4);
+    border-radius: 8px;
+    color: var(--red);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  /* RULES floating badge */
+  .rules-fab {
+    position: fixed;
+    bottom: 20px;
+    right: 16px;
+    background: var(--gold);
+    color: #000;
+    border: none;
+    border-radius: 50px;
+    padding: 10px 16px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    z-index: 50;
+    box-shadow: 0 4px 20px rgba(245,197,24,0.4);
+    letter-spacing: 0.5px;
+  }
+
+  .rules-modal { max-width: 400px; text-align: left; }
+  .rules-modal h3 { text-align: center; margin-bottom: 14px; }
+
+  .rule-item {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    margin-bottom: 10px;
+    padding: 10px;
+    background: var(--surface2);
+    border-radius: 8px;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--text);
+  }
+
+  .rule-pts {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    color: var(--gold);
+    flex-shrink: 0;
+    width: 36px;
+    text-align: center;
+  }
+
+  .rules-close {
+    width: 100%;
+    margin-top: 16px;
+    padding: 12px;
+    background: var(--gold);
+    color: #000;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    letter-spacing: 0.5px;
+  }
+
+  /* Completed overlay glow */
+  .fixture-card.completed .fixture-meta {
+    background: rgba(34,197,94,0.05);
+  }
+
+  .result-label {
+    font-size: 10px;
+    color: var(--text2);
+    text-align: center;
+    padding-bottom: 6px;
+  }
+
+  .crown { color: var(--gold); }
+
+  /* Emoji flags */
+  .flag { font-size: 16px; margin-right: 4px; }
+
+  /* Group all tab */
+  .all-group-hint {
+    text-align: center;
+    font-size: 12px;
+    color: var(--muted);
+    padding: 20px 16px 10px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-title">⚽ WC2026 PREDICTOR</div>
+  <div class="header-sub">Harry vs Garry · FIFA World Cup 2026</div>
+</header>
+
+<!-- Sticky scoreboard -->
+<div class="scoreboard">
+  <div class="player-score harry" id="harry-score-card">
+    <div class="player-name">🏆 Harry</div>
+    <div class="player-pts" id="harry-total">0</div>
+    <div class="player-breakdown" id="harry-breakdown">0 correct results · 0 exact scores</div>
+  </div>
+  <div class="vs-badge">VS</div>
+  <div class="player-score garry" id="garry-score-card">
+    <div class="player-name">💖 Garry</div>
+    <div class="player-pts" id="garry-total">0</div>
+    <div class="player-breakdown" id="garry-breakdown">0 correct results · 0 exact scores</div>
+  </div>
+</div>
+
+<!-- Tabs -->
+<div class="tabs" id="tabs-bar">
+  <button class="tab active" onclick="showGroup('A')">A</button>
+  <button class="tab" onclick="showGroup('B')">B</button>
+  <button class="tab" onclick="showGroup('C')">C</button>
+  <button class="tab" onclick="showGroup('D')">D</button>
+  <button class="tab" onclick="showGroup('E')">E</button>
+  <button class="tab" onclick="showGroup('F')">F</button>
+  <button class="tab" onclick="showGroup('G')">G</button>
+  <button class="tab" onclick="showGroup('H')">H</button>
+  <button class="tab" onclick="showGroup('I')">I</button>
+  <button class="tab" onclick="showGroup('J')">J</button>
+  <button class="tab" onclick="showGroup('K')">K</button>
+  <button class="tab" onclick="showGroup('L')">L</button>
+</div>
+
+<!-- Content panels generated by JS -->
+<div class="content" id="content"></div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- Rules FAB -->
+<button class="rules-fab" onclick="openRules()">📋 Rules</button>
+
+<!-- Rules Modal -->
+<div class="modal-overlay" id="rules-modal-overlay">
+  <div class="modal rules-modal">
+    <h3>📋 Points System</h3>
+    <div class="rule-item">
+      <div class="rule-pts">10</div>
+      <div>Correct result prediction (right winner, or correct draw)</div>
+    </div>
+    <div class="rule-item">
+      <div class="rule-pts">+10</div>
+      <div>Bonus for predicting the <strong>exact scoreline</strong> (stacks with the 10pts above)</div>
+    </div>
+    <div class="rule-item">
+      <div class="rule-pts">5</div>
+      <div>If <strong>nobody</strong> gets the exact score, the person whose score is <em>closest</em> (by fewest total goal difference) gets 5pts consolation</div>
+    </div>
+    <button class="rules-close" onclick="closeRules()">Got it!</button>
+  </div>
+</div>
+
+<!-- Clear confirm modal -->
+<div class="modal-overlay" id="clear-modal">
+  <div class="modal">
+    <h3>⚠️ Clear Result?</h3>
+    <p>This will remove the actual score and recalculate all points for this match.</p>
+    <div class="modal-btns">
+      <button class="modal-cancel" onclick="closeClearModal()">Cancel</button>
+      <button class="modal-confirm" onclick="confirmClear()">Clear it</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// DATA
+// ============================================================
+
+const FLAGS = {
+  'Mexico': '🇲🇽', 'South Africa': '🇿🇦', 'South Korea': '🇰🇷', 'Czechia': '🇨🇿',
+  'Canada': '🇨🇦', 'Switzerland': '🇨🇭', 'Qatar': '🇶🇦', 'Bosnia and Herzegovina': '🇧🇦',
+  'Brazil': '🇧🇷', 'Morocco': '🇲🇦', 'Scotland': '🏴󠁧󠁢󠁳󠁣󠁴󠁿', 'Haiti': '🇭🇹',
+  'USA': '🇺🇸', 'Paraguay': '🇵🇾', 'Australia': '🇦🇺', 'Türkiye': '🇹🇷',
+  'Germany': '🇩🇪', 'Curaçao': '🇨🇼', 'Ivory Coast': '🇨🇮', 'Ecuador': '🇪🇨',
+  'Netherlands': '🇳🇱', 'Japan': '🇯🇵', 'Sweden': '🇸🇪', 'Tunisia': '🇹🇳',
+  'Belgium': '🇧🇪', 'Iran': '🇮🇷', 'Egypt': '🇪🇬', 'New Zealand': '🇳🇿',
+  'Spain': '🇪🇸', 'Cape Verde': '🇨🇻', 'Saudi Arabia': '🇸🇦', 'Uruguay': '🇺🇾',
+  'France': '🇫🇷', 'Senegal': '🇸🇳', 'Iraq': '🇮🇶', 'Norway': '🇳🇴',
+  'Argentina': '🇦🇷', 'Algeria': '🇩🇿', 'Austria': '🇦🇹', 'Jordan': '🇯🇴',
+  'Portugal': '🇵🇹', 'DR Congo': '🇨🇩', 'Uzbekistan': '🇺🇿', 'Colombia': '🇨🇴',
+  'England': '🏴󠁧󠁢󠁥󠁮󠁧󠁿', 'Croatia': '🇭🇷', 'Ghana': '🇬🇭', 'Panama': '🇵🇦'
+};
+
+const GROUPS = {
+  A: {
+    teams: ['Mexico','South Korea','South Africa','Czechia'],
+    matches: [
+      { id:'A1', date:'Jun 11', home:'Mexico', away:'South Africa' },
+      { id:'A2', date:'Jun 12', home:'South Korea', away:'Czechia' },
+      { id:'A3', date:'Jun 18', home:'Czechia', away:'South Africa' },
+      { id:'A4', date:'Jun 19', home:'Mexico', away:'South Korea' },
+      { id:'A5', date:'Jun 25', home:'Czechia', away:'Mexico' },
+      { id:'A6', date:'Jun 25', home:'South Africa', away:'South Korea' },
+    ]
+  },
+  B: {
+    teams: ['Canada','Switzerland','Qatar','Bosnia and Herzegovina'],
+    matches: [
+      { id:'B1', date:'Jun 12', home:'Canada', away:'Bosnia and Herzegovina' },
+      { id:'B2', date:'Jun 13', home:'Qatar', away:'Switzerland' },
+      { id:'B3', date:'Jun 18', home:'Switzerland', away:'Bosnia and Herzegovina' },
+      { id:'B4', date:'Jun 18', home:'Canada', away:'Qatar' },
+      { id:'B5', date:'Jun 24', home:'Switzerland', away:'Canada' },
+      { id:'B6', date:'Jun 24', home:'Bosnia and Herzegovina', away:'Qatar' },
+    ]
+  },
+  C: {
+    teams: ['Brazil','Morocco','Scotland','Haiti'],
+    matches: [
+      { id:'C1', date:'Jun 13', home:'Brazil', away:'Morocco' },
+      { id:'C2', date:'Jun 14', home:'Haiti', away:'Scotland' },
+      { id:'C3', date:'Jun 19', home:'Brazil', away:'Haiti' },
+      { id:'C4', date:'Jun 19', home:'Scotland', away:'Morocco' },
+      { id:'C5', date:'Jun 24', home:'Scotland', away:'Brazil' },
+      { id:'C6', date:'Jun 24', home:'Morocco', away:'Haiti' },
+    ]
+  },
+  D: {
+    teams: ['USA','Australia','Paraguay','Türkiye'],
+    matches: [
+      { id:'D1', date:'Jun 13', home:'USA', away:'Paraguay' },
+      { id:'D2', date:'Jun 14', home:'Australia', away:'Türkiye' },
+      { id:'D3', date:'Jun 19', home:'USA', away:'Australia' },
+      { id:'D4', date:'Jun 20', home:'Türkiye', away:'Paraguay' },
+      { id:'D5', date:'Jun 26', home:'Türkiye', away:'USA' },
+      { id:'D6', date:'Jun 26', home:'Paraguay', away:'Australia' },
+    ]
+  },
+  E: {
+    teams: ['Germany','Ecuador','Ivory Coast','Curaçao'],
+    matches: [
+      { id:'E1', date:'Jun 14', home:'Germany', away:'Curaçao' },
+      { id:'E2', date:'Jun 15', home:'Ivory Coast', away:'Ecuador' },
+      { id:'E3', date:'Jun 20', home:'Germany', away:'Ivory Coast' },
+      { id:'E4', date:'Jun 21', home:'Ecuador', away:'Curaçao' },
+      { id:'E5', date:'Jun 25', home:'Curaçao', away:'Ivory Coast' },
+      { id:'E6', date:'Jun 25', home:'Ecuador', away:'Germany' },
+    ]
+  },
+  F: {
+    teams: ['Netherlands','Japan','Sweden','Tunisia'],
+    matches: [
+      { id:'F1', date:'Jun 14', home:'Netherlands', away:'Japan' },
+      { id:'F2', date:'Jun 15', home:'Sweden', away:'Tunisia' },
+      { id:'F3', date:'Jun 20', home:'Netherlands', away:'Sweden' },
+      { id:'F4', date:'Jun 21', home:'Tunisia', away:'Japan' },
+      { id:'F5', date:'Jun 26', home:'Tunisia', away:'Netherlands' },
+      { id:'F6', date:'Jun 26', home:'Japan', away:'Sweden' },
+    ]
+  },
+  G: {
+    teams: ['Belgium','Iran','Egypt','New Zealand'],
+    matches: [
+      { id:'G1', date:'Jun 15', home:'Belgium', away:'Egypt' },
+      { id:'G2', date:'Jun 16', home:'Iran', away:'New Zealand' },
+      { id:'G3', date:'Jun 21', home:'Belgium', away:'Iran' },
+      { id:'G4', date:'Jun 22', home:'New Zealand', away:'Egypt' },
+      { id:'G5', date:'Jun 27', home:'New Zealand', away:'Belgium' },
+      { id:'G6', date:'Jun 27', home:'Egypt', away:'Iran' },
+    ]
+  },
+  H: {
+    teams: ['Spain','Uruguay','Saudi Arabia','Cape Verde'],
+    matches: [
+      { id:'H1', date:'Jun 15', home:'Spain', away:'Cape Verde' },
+      { id:'H2', date:'Jun 15', home:'Saudi Arabia', away:'Uruguay' },
+      { id:'H3', date:'Jun 21', home:'Uruguay', away:'Cape Verde' },
+      { id:'H4', date:'Jun 21', home:'Spain', away:'Saudi Arabia' },
+      { id:'H5', date:'Jun 27', home:'Cape Verde', away:'Saudi Arabia' },
+      { id:'H6', date:'Jun 27', home:'Uruguay', away:'Spain' },
+    ]
+  },
+  I: {
+    teams: ['France','Senegal','Iraq','Norway'],
+    matches: [
+      { id:'I1', date:'Jun 16', home:'France', away:'Senegal' },
+      { id:'I2', date:'Jun 16', home:'Iraq', away:'Norway' },
+      { id:'I3', date:'Jun 22', home:'Norway', away:'Senegal' },
+      { id:'I4', date:'Jun 22', home:'France', away:'Iraq' },
+      { id:'I5', date:'Jun 26', home:'Senegal', away:'France' },
+      { id:'I6', date:'Jun 26', home:'Norway', away:'Iraq' },
+    ]
+  },
+  J: {
+    teams: ['Argentina','Algeria','Austria','Jordan'],
+    matches: [
+      { id:'J1', date:'Jun 16', home:'Argentina', away:'Algeria' },
+      { id:'J2', date:'Jun 17', home:'Austria', away:'Jordan' },
+      { id:'J3', date:'Jun 22', home:'Argentina', away:'Austria' },
+      { id:'J4', date:'Jun 22', home:'Jordan', away:'Algeria' },
+      { id:'J5', date:'Jun 27', home:'Algeria', away:'Austria' },
+      { id:'J6', date:'Jun 27', home:'Jordan', away:'Argentina' },
+    ]
+  },
+  K: {
+    teams: ['Portugal','DR Congo','Uzbekistan','Colombia'],
+    matches: [
+      { id:'K1', date:'Jun 17', home:'Portugal', away:'DR Congo' },
+      { id:'K2', date:'Jun 18', home:'Uzbekistan', away:'Colombia' },
+      { id:'K3', date:'Jun 23', home:'Portugal', away:'Uzbekistan' },
+      { id:'K4', date:'Jun 24', home:'Colombia', away:'DR Congo' },
+      { id:'K5', date:'Jun 28', home:'Colombia', away:'Portugal' },
+      { id:'K6', date:'Jun 28', home:'DR Congo', away:'Uzbekistan' },
+    ]
+  },
+  L: {
+    teams: ['England','Croatia','Ghana','Panama'],
+    matches: [
+      { id:'L1', date:'Jun 17', home:'England', away:'Croatia' },
+      { id:'L2', date:'Jun 17', home:'Ghana', away:'Panama' },
+      { id:'L3', date:'Jun 23', home:'England', away:'Ghana' },
+      { id:'L4', date:'Jun 23', home:'Panama', away:'Croatia' },
+      { id:'L5', date:'Jun 27', home:'Panama', away:'England' },
+      { id:'L6', date:'Jun 27', home:'Croatia', away:'Ghana' },
+    ]
+  }
+};
+
+// ============================================================
+// STATE
+// ============================================================
+
+const STORAGE_KEY = 'wc2026_predictor_v2';
+let state = loadState();
+let pendingClearId = null;
+let currentGroup = 'A';
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch(e) {}
+  // Build default
+  const s = { matches: {} };
+  Object.entries(GROUPS).forEach(([g, gd]) => {
+    gd.matches.forEach(m => {
+      s.matches[m.id] = {
+        harryH: '', harryA: '',
+        garryH: '', garryA: '',
+        actualH: null, actualA: null,
+        harryPts: 0, garryPts: 0
+      };
+    });
+  });
+  return s;
+}
+
+function saveState() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+// ============================================================
+// SCORING
+// ============================================================
+
+function getResult(h, a) {
+  if (h > a) return 'H';
+  if (a > h) return 'A';
+  return 'D';
+}
+
+function goalDiff(predH, predA, actualH, actualA) {
+  return Math.abs(Math.abs(predH - predA) - Math.abs(actualH - actualA)) +
+         Math.abs((predH + predA) - (actualH + actualA));
+}
+
+function calcPoints(m) {
+  const ms = state.matches[m.id];
+  const aH = ms.actualH;
+  const aA = ms.actualA;
+
+  if (aH === null || aA === null) {
+    ms.harryPts = 0;
+    ms.garryPts = 0;
+    return;
+  }
+
+  const actualRes = getResult(aH, aA);
+  const hH = parseInt(ms.harryH);
+  const hA = parseInt(ms.harryA);
+  const gH = parseInt(ms.garryH);
+  const gA = parseInt(ms.garryA);
+
+  let harryPts = 0;
+  let garryPts = 0;
+
+  const harryHasPred = !isNaN(hH) && !isNaN(hA);
+  const garryHasPred = !isNaN(gH) && !isNaN(gA);
+
+  // Check exact score
+  const harryExact = harryHasPred && hH === aH && hA === aA;
+  const garryExact = garryHasPred && gH === aH && gA === aA;
+
+  // Check correct result
+  const harryResult = harryHasPred && getResult(hH, hA) === actualRes;
+  const garryResult = garryHasPred && getResult(gH, gA) === actualRes;
+
+  if (harryResult) harryPts += 10;
+  if (garryResult) garryPts += 10;
+
+  if (harryExact) harryPts += 10;
+  if (garryExact) garryPts += 10;
+
+  // Closest score consolation (only if nobody got exact)
+  if (!harryExact && !garryExact) {
+    if (harryHasPred && garryHasPred) {
+      const hDiff = goalDiff(hH, hA, aH, aA);
+      const gDiff = goalDiff(gH, gA, aH, aA);
+      if (hDiff < gDiff) harryPts += 5;
+      else if (gDiff < hDiff) garryPts += 5;
+      // tie: no bonus
+    } else if (harryHasPred) {
+      harryPts += 5;
+    } else if (garryHasPred) {
+      garryPts += 5;
+    }
+  }
+
+  ms.harryPts = harryPts;
+  ms.garryPts = garryPts;
+}
+
+function recalcAll() {
+  Object.entries(GROUPS).forEach(([g, gd]) => {
+    gd.matches.forEach(m => calcPoints(m));
+  });
+}
+
+function getTotals() {
+  let hTotal = 0, gTotal = 0, hResults = 0, gResults = 0, hExact = 0, gExact = 0;
+  Object.entries(GROUPS).forEach(([g, gd]) => {
+    gd.matches.forEach(m => {
+      const ms = state.matches[m.id];
+      hTotal += ms.harryPts;
+      gTotal += ms.garryPts;
+      const aH = ms.actualH;
+      const aA = ms.actualA;
+      if (aH !== null) {
+        const ar = getResult(aH, aA);
+        const hH = parseInt(ms.harryH), hA = parseInt(ms.harryA);
+        const gH = parseInt(ms.garryH), gA = parseInt(ms.garryA);
+        if (!isNaN(hH) && !isNaN(hA)) {
+          if (getResult(hH, hA) === ar) hResults++;
+          if (hH === aH && hA === aA) hExact++;
+        }
+        if (!isNaN(gH) && !isNaN(gA)) {
+          if (getResult(gH, gA) === ar) gResults++;
+          if (gH === aH && gA === aA) gExact++;
+        }
+      }
+    });
+  });
+  return { hTotal, gTotal, hResults, gResults, hExact, gExact };
+}
+
+// ============================================================
+// RENDER
+// ============================================================
+
+function flag(team) {
+  return FLAGS[team] || '🏳️';
+}
+
+function renderAll() {
+  const content = document.getElementById('content');
+  content.innerHTML = '';
+
+  Object.entries(GROUPS).forEach(([g, gd]) => {
+    const panel = document.createElement('div');
+    panel.className = 'group-panel' + (g === currentGroup ? ' active' : '');
+    panel.id = `group-${g}`;
+
+    const teamList = gd.teams.map(t => `${flag(t)} ${t}`).join(' · ');
+
+    let html = `
+      <div class="group-header">
+        <div class="group-badge">GROUP ${g}</div>
+        <div class="group-teams">${teamList}</div>
+      </div>
+    `;
+
+    gd.matches.forEach(m => {
+      const ms = state.matches[m.id];
+      const completed = ms.actualH !== null;
+      const aH = ms.actualH !== null ? ms.actualH : '';
+      const aA = ms.actualA !== null ? ms.actualA : '';
+
+      const hH = ms.harryH !== '' ? ms.harryH : '';
+      const hA = ms.harryA !== '' ? ms.harryA : '';
+      const gH = ms.garryH !== '' ? ms.garryH : '';
+      const gA = ms.garryA !== '' ? ms.garryA : '';
+
+      const hPtsStr = completed && (ms.harryPts > 0 || hH !== '') ? pointsLabel(ms.harryPts, ms, 'harry') : '';
+      const gPtsStr = completed && (ms.garryPts > 0 || gH !== '') ? pointsLabel(ms.garryPts, ms, 'garry') : '';
+
+      html += `
+        <div class="fixture-card${completed ? ' completed' : ''}" id="card-${m.id}">
+          <div class="fixture-meta">
+            <div class="fixture-date">${m.date}</div>
+            <div class="fixture-status ${completed ? 'done' : 'pending'}">${completed ? '✅ Done' : '⏳ Pending'}</div>
+          </div>
+          <div class="match-row">
+            <div class="team-name team-home">${flag(m.home)} ${m.home}</div>
+            <div class="score-display">
+              <div class="score-box">${aH !== '' ? aH : '?'}</div>
+              <div class="score-dash">–</div>
+              <div class="score-box">${aA !== '' ? aA : '?'}</div>
+            </div>
+            <div class="team-name team-away">${flag(m.away)} ${m.away}</div>
+          </div>
+          <div class="actual-score-row">
+            <div class="actual-label">Score</div>
+            <div class="actual-inputs">
+              <input class="score-input" type="number" min="0" max="99" id="act-${m.id}-h" value="${aH}" placeholder="0" inputmode="numeric">
+              <div class="score-dash">–</div>
+              <input class="score-input" type="number" min="0" max="99" id="act-${m.id}-a" value="${aA}" placeholder="0" inputmode="numeric">
+            </div>
+            <button class="submit-btn" onclick="submitScore('${m.id}')">Set</button>
+            ${completed ? `<button class="clear-btn" onclick="openClear('${m.id}')">✕</button>` : ''}
+          </div>
+          <div class="predictions-area">
+            <div class="prediction-block harry-pred">
+              <div class="pred-player-label">Harry</div>
+              <div class="pred-score-row">
+                <input class="pred-input" type="number" min="0" max="99" id="pred-${m.id}-hH" value="${hH}" placeholder="?" inputmode="numeric" onchange="savePred('${m.id}')">
+                <div class="pred-dash">–</div>
+                <input class="pred-input" type="number" min="0" max="99" id="pred-${m.id}-hA" value="${hA}" placeholder="?" inputmode="numeric" onchange="savePred('${m.id}')">
+              </div>
+              <div class="pred-points" id="pts-harry-${m.id}">${hPtsStr}</div>
+            </div>
+            <div class="prediction-block garry-pred">
+              <div class="pred-player-label">Garry</div>
+              <div class="pred-score-row">
+                <input class="pred-input" type="number" min="0" max="99" id="pred-${m.id}-gH" value="${gH}" placeholder="?" inputmode="numeric" onchange="savePred('${m.id}')">
+                <div class="pred-dash">–</div>
+                <input class="pred-input" type="number" min="0" max="99" id="pred-${m.id}-gA" value="${gA}" placeholder="?" inputmode="numeric" onchange="savePred('${m.id}')">
+              </div>
+              <div class="pred-points" id="pts-garry-${m.id}">${gPtsStr}</div>
+            </div>
+          </div>
+        </div>
+      `;
+    });
+
+    panel.innerHTML = html;
+    content.appendChild(panel);
+  });
+
+  updateScoreboard();
+}
+
+function pointsLabel(pts, ms, who) {
+  if (ms.actualH === null) return '';
+  const aH = ms.actualH, aA = ms.actualA;
+  const h = parseInt(who === 'harry' ? ms.harryH : ms.garryH);
+  const a = parseInt(who === 'harry' ? ms.harryA : ms.garryA);
+  if (isNaN(h) || isNaN(a)) return pts > 0 ? `+${pts} pts` : 'No prediction';
+  const exact = h === aH && a === aA;
+  const correct = getResult(h, a) === getResult(aH, aA);
+  if (pts === 0) return '❌ 0 pts';
+  let label = `+${pts} pts`;
+  if (exact) label += ' 🎯';
+  else if (correct) label += ' ✓';
+  return label;
+}
+
+function updateScoreboard() {
+  const t = getTotals();
+  document.getElementById('harry-total').textContent = t.hTotal;
+  document.getElementById('garry-total').textContent = t.gTotal;
+  document.getElementById('harry-breakdown').textContent = `${t.hResults} correct results · ${t.hExact} exact scores`;
+  document.getElementById('garry-breakdown').textContent = `${t.gResults} correct results · ${t.gExact} exact scores`;
+
+  const hCard = document.getElementById('harry-score-card');
+  const gCard = document.getElementById('garry-score-card');
+  hCard.classList.remove('leading');
+  gCard.classList.remove('leading');
+  if (t.hTotal > t.gTotal) hCard.classList.add('leading');
+  else if (t.gTotal > t.hTotal) gCard.classList.add('leading');
+}
+
+// ============================================================
+// INTERACTIONS
+// ============================================================
+
+function showGroup(g) {
+  currentGroup = g;
+  document.querySelectorAll('.group-panel').forEach(p => p.classList.remove('active'));
+  const panel = document.getElementById(`group-${g}`);
+  if (panel) panel.classList.add('active');
+
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  const tabs = document.querySelectorAll('.tab');
+  const letters = 'ABCDEFGHIJKL'.split('');
+  const idx = letters.indexOf(g);
+  if (tabs[idx]) tabs[idx].classList.add('active');
+}
+
+function savePred(matchId) {
+  const ms = state.matches[matchId];
+  const hH = document.getElementById(`pred-${matchId}-hH`);
+  const hA = document.getElementById(`pred-${matchId}-hA`);
+  const gH = document.getElementById(`pred-${matchId}-gH`);
+  const gA = document.getElementById(`pred-${matchId}-gA`);
+  if (hH) ms.harryH = hH.value;
+  if (hA) ms.harryA = hA.value;
+  if (gH) ms.garryH = gH.value;
+  if (gA) ms.garryA = gA.value;
+
+  calcPoints(findMatch(matchId));
+  saveState();
+
+  // Update points labels & scoreboard without full re-render
+  updateMatchPointsDisplay(matchId);
+  updateScoreboard();
+}
+
+function findMatch(id) {
+  for (const [g, gd] of Object.entries(GROUPS)) {
+    for (const m of gd.matches) {
+      if (m.id === id) return m;
+    }
+  }
+  return null;
+}
+
+function submitScore(matchId) {
+  const hInput = document.getElementById(`act-${matchId}-h`);
+  const aInput = document.getElementById(`act-${matchId}-a`);
+  const hVal = parseInt(hInput.value);
+  const aVal = parseInt(aInput.value);
+
+  if (isNaN(hVal) || isNaN(aVal) || hVal < 0 || aVal < 0) {
+    showToast('⚠️ Please enter valid scores (0 or more)');
+    return;
+  }
+
+  const ms = state.matches[matchId];
+  ms.actualH = hVal;
+  ms.actualA = aVal;
+
+  calcPoints(findMatch(matchId));
+  saveState();
+  recalcAll();
+  renderAll();
+  showGroup(currentGroup);
+  showToast('✅ Score saved & points updated!');
+}
+
+function openClear(matchId) {
+  pendingClearId = matchId;
+  document.getElementById('clear-modal').classList.add('open');
+}
+
+function closeClearModal() {
+  pendingClearId = null;
+  document.getElementById('clear-modal').classList.remove('open');
+}
+
+function confirmClear() {
+  if (!pendingClearId) return;
+  const ms = state.matches[pendingClearId];
+  ms.actualH = null;
+  ms.actualA = null;
+  ms.harryPts = 0;
+  ms.garryPts = 0;
+  saveState();
+  closeClearModal();
+  renderAll();
+  showGroup(currentGroup);
+  showToast('🗑️ Score cleared');
+}
+
+function updateMatchPointsDisplay(matchId) {
+  const ms = state.matches[matchId];
+  const hEl = document.getElementById(`pts-harry-${matchId}`);
+  const gEl = document.getElementById(`pts-garry-${matchId}`);
+  if (hEl) hEl.textContent = ms.actualH !== null ? pointsLabel(ms.harryPts, ms, 'harry') : '';
+  if (gEl) gEl.textContent = ms.actualA !== null ? pointsLabel(ms.garryPts, ms, 'garry') : '';
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+function openRules() {
+  document.getElementById('rules-modal-overlay').classList.add('open');
+}
+
+function closeRules() {
+  document.getElementById('rules-modal-overlay').classList.remove('open');
+}
+
+// Close modals on overlay click
+document.getElementById('rules-modal-overlay').addEventListener('click', function(e) {
+  if (e.target === this) closeRules();
+});
+document.getElementById('clear-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeClearModal();
+});
+
+// ============================================================
+// INIT
+// ============================================================
+
+recalcAll();
+renderAll();
+showGroup('A');
+</script>
+</body>
+</html>
