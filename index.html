@@ -359,7 +359,7 @@ function calcPoints(m) {
   if (harryHasPred && hH === aH && hA === aA) harryPts += 10;
   if (garryHasPred && gH === aH && gA === aA) garryPts += 10;
 
-  if (! (harryHasPred && hH === aH && hA === aA) && ! (garryHasPred && gH === aH && gA === aA)) {
+  if (! ( hH === aH && hA === aA) && ! ( gH === aH && gA === aA)) {
     if (harryHasPred && garryHasPred) {
       const hDiff = goalDiff(hH, hA, aH, aA), gDiff = goalDiff(gH, gA, aH, aA);
       if (hDiff < gDiff) harryPts += 5; else if (gDiff < hDiff) garryPts += 5;
