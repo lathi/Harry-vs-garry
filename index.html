@@ -343,7 +343,7 @@ function goalDiff(predH, predA, actualH, actualA) { return (Math.abs(predH - act
 
 function calcPoints(m) {
   const ms = state.matches[m.id];
-  if (!ms || ms.actualH === null || ms.actualA === null) return { harryPts: 0, garryPts: 0 };
+  if (!ms || ms.actualH === undefined || ms.actualA === undefined) return { harryPts: 0, garryPts: 0 };
 
   const aH = ms.actualH, aA = ms.actualA, actualRes = getResult(aH, aA);
   const hH = parseInt(ms.harryH || -1), hA = parseInt(ms.harryA || -1);
@@ -384,7 +384,7 @@ function renderAll() {
       html += `
         <div class="fixture-card ${ms.actualH !== null ? 'completed' : ''}" id="card-${m.id}">
           <div class="fixture-meta"><div class="fixture-date">${m.date}</div></div>
-          <div class="match-row"><div class="team-name team-home">${m.home}</div><div class="score-display"><div class="score-box">${(ms.actualH !== null && ms.actualH !== undefined) ? ms.actualH : '?'}</div><div class="score-dash">–</div><div class="score-box">${(ms.actualA !== null && ms.actualA !== undefined) ? ms.actualA : '?'}</div></div><div class="team-name team-away">${m.away}</div></div>
+          <div class="match-row"><div class="team-name team-home"><span class="flag">${FLAGS[m.home] || ''}</span>${m.home}</div><div class="score-display"><div class="score-box">${(ms.actualH !== null && ms.actualH !== undefined) ? ms.actualH : '?'}</div><div class="score-dash">–</div><div class="score-box">${(ms.actualA !== null && ms.actualA !== undefined) ? ms.actualA : '?'}</div></div><div class="team-name team-away">${m.away}<span class="flag">${FLAGS[m.away] || ''}</span></div></div>
           <div class="actual-score-row"><input class="score-input" type="number" id="act-${m.id}-h" value="${ms.actualH ?? ''}"><input class="score-input" type="number" id="act-${m.id}-a" value="${ms.actualA ?? ''}"><button class="submit-btn" onclick="submitScore('${m.id}')">Set</button><button class="clear-btn" onclick="openClear('${m.id}')">Clear</button></div>
           <div class="predictions-area">
             <div class="prediction-block harry-pred"><div class="pred-player-label">Harry</div><input class="pred-input" value="${ms.harryH}" onchange="savePred('${m.id}')" id="p1-${m.id}-h"><input class="pred-input" value="${ms.harryA}" onchange="savePred('${m.id}')" id="p1-${m.id}-a"><div class="pred-points">${pts.harryPts > 0 ? '+'+pts.harryPts : ''}</div></div>
@@ -427,13 +427,59 @@ function submitScore(mId) {
   showToast('Saved!');
 }
 
+// function updateScoreboard() {
+//   let hT = 0, gT = 0;
+//   for (let id in state.matches) { hT += (state.matches[id].harryPts || 0); gT += (state.matches[id].garryPts || 0); }
+//   document.getElementById('harry-total').textContent = hT; document.getElementById('garry-total').textContent = gT;
+//   document.getElementById('harry-score-card').classList.toggle('leading', hT > gT); document.getElementById('garry-score-card').classList.toggle('leading', gT > hT);
+// }
+
 function updateScoreboard() {
   let hT = 0, gT = 0;
-  for (let id in state.matches) { hT += (state.matches[id].harryPts || 0); gT += (state.matches[id].garryPts || 0); }
-  document.getElementById('harry-total').textContent = hT; document.getElementById('garry-total').textContent = gT;
-  document.getElementById('harry-score-card').classList.toggle('leading', hT > gT); document.getElementById('garry-score-card').classList.toggle('leading', gT > hT);
-}
+  let hExact = 0, hRes = 0;
+  let gExact = 0, gRes = 0;
 
+  for (let id in state.matches) { 
+    const ms = state.matches[id];
+    
+    // Add up points
+    hT += (ms.harryPts || 0); 
+    gT += (ms.garryPts || 0); 
+
+    // Count correct predictions if the match has an actual score
+    if (ms.actualH !== null && ms.actualA !== null && ms.actualH !== undefined) {
+      const aH = parseInt(ms.actualH), aA = parseInt(ms.actualA);
+      const hH = parseInt(ms.harryH), hA = parseInt(ms.harryA);
+      const gH = parseInt(ms.garryH), gA = parseInt(ms.garryA);
+      const actualRes = getResult(aH, aA);
+
+      // Harry's Stats
+      if (!isNaN(hH) && !isNaN(hA)) {
+        if (hH === aH && hA === aA) hExact++;
+        if (getResult(hH, hA) === actualRes) hRes++;
+      }
+      
+      // Garry's Stats
+      if (!isNaN(gH) && !isNaN(gA)) {
+        if (gH === aH && gA === aA) gExact++;
+        if (getResult(gH, gA) === actualRes) gRes++;
+      }
+    }
+  }
+
+  // Update Points
+  document.getElementById('harry-total').textContent = hT; 
+  document.getElementById('garry-total').textContent = gT;
+  
+  // Update Breakdowns
+  document.getElementById('harry-breakdown').textContent = `${hRes} correct results · ${hExact} exact scores`;
+  document.getElementById('garry-breakdown').textContent = `${gRes} correct results · ${gExact} exact scores`;
+
+  // Update Leading Styles
+  document.getElementById('harry-score-card').classList.toggle('leading', hT > gT); 
+  document.getElementById('garry-score-card').classList.toggle('leading', gT > hT);
+}  
+  
 function openRules() { document.getElementById('rules-modal-overlay').classList.add('open'); }
 function closeRules() { document.getElementById('rules-modal-overlay').classList.remove('open'); }
 function openClear(id) { pendingClearId = id; document.getElementById('clear-modal').classList.add('open'); }
