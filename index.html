@@ -472,8 +472,8 @@ function updateScoreboard() {
   document.getElementById('garry-total').textContent = gT;
   
   // Update Breakdowns
-  document.getElementById('harry-breakdown').textContent = `${hRes} correct results · ${hExact} exact scores`;
-  document.getElementById('garry-breakdown').textContent = `${gRes} correct results · ${gExact} exact scores`;
+  document.getElementById('harry-breakdown').textContent = `${hRes} correct results ✔ · ${hExact} exact scores 🎯`;
+  document.getElementById('garry-breakdown').textContent = `${gRes} correct results ✔ · ${gExact} exact scores 🎯`;
 
   // Update Leading Styles
   document.getElementById('harry-score-card').classList.toggle('leading', hT > gT); 
