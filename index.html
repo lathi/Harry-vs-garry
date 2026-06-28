@@ -180,6 +180,11 @@
         document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
         btn.classList.add("active");
         el("tab-" + btn.dataset.tab).classList.add("active");
+        if (btn.dataset.tab === "wagers") {
+          setTimeout(() => {
+            renderWagerTab();
+          }, 50);
+        }  
       });
     });
 
@@ -297,42 +302,73 @@
     return pts;
   }
 
-  function totalScore(player){
+  function calcWagerScore(player) {
+    let pts = 0;
+    const np = state.newpred?.[player] || {};
+  
+    // Check SF wagers
+    const sfWagers = np.SF || {};
+    Object.values(sfWagers).forEach(pred => {
+      if (pred.wager && pred.predictedWinner && pred.resolved && pred.actualWinner) {
+        if (pred.predictedWinner === pred.actualWinner) {
+          pts += Number(pred.wager);
+        } else {
+          pts -= Number(pred.wager);
+        }
+      }
+    });
+  
+    // Check Final wagers
+    const finalWager = np.F?.[0] || {};
+    if (finalWager.wager && finalWager.predictedWinner && finalWager.resolved && finalWager.actualWinner) {
+      if (finalWager.predictedWinner === finalWager.actualWinner) {
+        pts += Number(finalWager.wager);
+      } else {
+        pts -= Number(finalWager.wager);
+      }
+    }
+  
+    return pts;
+  }
+
+
+  function totalScore(player) {
     const gs = player === "garry" ? GS_GARRY : GS_HARRY;
-    return gs + calcOGScore(player) + calcNewScore(player);
+    const newPredPoints = calcNewScore(player);
+    const wagerPoints = calcWagerScore(player);
+  
+    return gs + newPredPoints + wagerPoints;
   }
 
   // ── Leaderboard ───────────────────────────────────────────────────────────
-  function renderLeaderboard(){
+  
+  function renderLeaderboard() {
+    const garryNew = calcNewScore("garry");
+    const harryNew = calcNewScore("harry");
+    const garryWager = calcWagerScore("garry");
+    const harryWager = calcWagerScore("harry");
+  
     const garryTotal = totalScore("garry");
     const harryTotal = totalScore("harry");
-    const garryOG    = calcOGScore("garry");
-    const harryOG    = calcOGScore("harry");
-    const garryNP    = calcNewScore("garry");
-    const harryNP    = calcNewScore("harry");
-
-    const leading = garryTotal > harryTotal ? "garry" : harryTotal > garryTotal ? "harry" : "tie";
-
+  
     el("leaderboard").innerHTML = `
-      <div class="lb-card ${leading==='garry'?'leading':''}">
-        <div class="lb-crown">${leading==='garry'?'👑':''}</div>
+      <div class="lb-card">
         <div class="lb-name garry-color">Garry</div>
         <div class="lb-total">${garryTotal}</div>
         <div class="lb-breakdown">
-          <span>Group: ${GS_GARRY}</span>
-          <span>OG KO: ${garryOG>=0?'+':''}${garryOG}</span>
-          <span>New: ${garryNP>=0?'+':''}${garryNP}</span>
+          <span>New: ${garryNew}</span>
+          <span>Wagers: ${garryWager}</span>
         </div>
       </div>
-      <div class="lb-vs">${leading==='tie'?'🤝':'⚔️'}</div>
-      <div class="lb-card ${leading==='harry'?'leading':''}">
-        <div class="lb-crown">${leading==='harry'?'👑':''}</div>
+  
+      <div class="lb-vs">vs</div>
+  
+      <div class="lb-card">
         <div class="lb-name harry-color">Harry</div>
         <div class="lb-total">${harryTotal}</div>
         <div class="lb-breakdown">
-          <span>Group: ${GS_HARRY}</span>
-          <span>OG KO: ${harryOG>=0?'+':''}${harryOG}</span>
-          <span>New: ${harryNP>=0?'+':''}${harryNP}</span>
+          <span>New: ${harryNew}</span>
+          <span>Wagers: ${harryWager}</span>
         </div>
       </div>
     `;
