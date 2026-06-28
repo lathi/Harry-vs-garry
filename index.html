@@ -771,8 +771,14 @@
 
   function getAvailableTeamsForMatch(round, idx) {
     if (round === "R32") {
-      return ["ARG","FRA","BRA","ENG","ESP","GER","POR","NED","BEL","CRO","URU","COL","MEX","USA","CAN","JPN",
-              "MAR","SEN","KOR","AUS","ECU","PER","PAR","CHI","CRC","PAN","HON","SLV","JAM","TRI","CUB","HAI"];
+      return ["MEX", "RSA", "SUI", "CAN", 
+              "BIH", "BRA", "MAR", "USA", 
+              "AUS", "PAR", "GER", "CIV", 
+              "ECU", "NED", "JPN", "SWE", 
+              "BEL", "EGY", "ESP", "CPV", 
+              "FRA", "NOR", "SEN", "ARG", 
+              "AUT", "ALG", "COL", "POR", 
+              "COD", "GHA", "CRO", "ENG"];
     }
   
     const prevRoundMap = { R16: "R32", QF: "R16", SF: "QF", F: "SF" };
