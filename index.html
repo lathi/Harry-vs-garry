@@ -478,46 +478,36 @@
   };
 
   // ── New Predictions tab ───────────────────────────────────────────────────
+
   function renderNewPred(){
     const panel = el("tab-newpred");
-    let html = `<div class="section-header"><h2>🔮 New Predictions</h2>
-      <p>Knockout stage live predictions. R32/R16/QF: score + qualifying team. SF/F: wager system.</p></div>`;
-
-    for(const round of ROUNDS){
+    
+    let html = `
+      <div class="section-header">
+        <h2>🔮 New Predictions</h2>
+        <p>Primary: +5 per correct advancing team • Bonus: +10 for correct score. Edit predictions for both players below.</p>
+      </div>
+    `;
+  
+    for (const round of ROUNDS) {
       const count = MATCH_COUNT[round];
-      const isWager = ["SF","F"].includes(round);
+      const isWagerRound = ["SF", "F"].includes(round);
+  
       html += `<div class="round-section">
-        <h3 class="round-title">${ROUND_LABELS[round]}
-          <span class="round-pts-info">${isWager ? "Wager points on winner" : `+${NEW_PROGRESS} qualify · +${NEW_SCORE} correct score`}</span>
-        </h3>
+        <h3 class="round-title">${ROUND_LABELS[round]}</h3>
         <div class="og-grid">`;
-      for(let i=0; i<count; i++){
-        html += renderNewPredMatch(round, i, isWager);
+  
+      for (let i = 0; i < count; i++) {
+        html += renderNewPredMatchSideBySide(round, i, isWagerRound);
       }
+  
       html += `</div></div>`;
     }
-
-    // ==================== PHASE A: Predicted Advancing Teams ====================
-  html += `<div class="round-section">
-      <h3 class="round-title">My Predicted Advancing Teams <span class="round-pts-info">Primary scoring (+5 per correct team)</span></h3>
-      
-      <div class="card">
-        <h4>Teams I predict will reach Round of 16</h4>
-        <div id="newpred-r16-advancing-teams"></div>
-        <button onclick="savePredictedAdvancingTeams('R16')" class="save-btn" style="margin-top: 8px; background:#6366f1">Save R16 Predictions</button>
-      </div>
   
-      <div class="card" style="margin-top: 1rem;">
-        <h4>Teams I predict will reach Quarter Finals</h4>
-        <div id="newpred-qf-advancing-teams"></div>
-        <button onclick="savePredictedAdvancingTeams('QF')" class="save-btn" style="margin-top: 8px; background:#6366f1">Save QF Predictions</button>
-      </div>
-    </div>`
-    ;
     panel.innerHTML = html;
-    setTimeout(() => {renderPredictedAdvancingTeams();}, 80);
     bindNewPredInputs();
   }
+  
 
   function renderNewPredMatch(round, idx, isWager){
     const actual = state.matches?.[round]?.[idx] || {};
@@ -546,6 +536,98 @@
           ${renderNPEntry("harry", "Harry", "harry-color", round, idx, hNP, actual, hPoints, isWager)}
         </div>
       </div>
+    `;
+  }
+
+  function renderNewPredMatchSideBySide(round, idx, isWager) {
+    const actual = state.matches?.[round]?.[idx] || {};
+    const hPred = state.newpred?.harry?.[round]?.[idx] || {};
+    const gPred = state.newpred?.garry?.[round]?.[idx] || {};
+    const played = actual.played;
+  
+    const team1 = actual.team1 || "TBD";
+    const team2 = actual.team2 || "TBD";
+    const hasTeams = actual.team1 && actual.team2;
+  
+    return `
+      <div class="match-card" data-round="${round}" data-idx="${idx}">
+        <div class="match-id">${ROUND_LABELS[round]} · Match ${idx + 1}</div>
+        
+        ${hasTeams 
+          ? `<div class="actual-result" style="margin-bottom:10px;">
+               <strong>${team1} vs ${team2}</strong>
+               ${played ? `→ <span style="color:#22c55e">${actual.winner}</span>` : ''}
+             </div>` 
+          : `<div class="actual-result pending" style="margin-bottom:10px;">Fixture not set in Admin yet</div>`}
+  
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          
+          <!-- Harry -->
+          <div>
+            <div style="font-weight:700; color:#4fc3f7; margin-bottom:6px;">Harry</div>
+            ${renderPlayerPredictionInputs("harry", round, idx, hPred, hasTeams, team1, team2, isWager)}
+          </div>
+  
+          <!-- Garry -->
+          <div>
+            <div style="font-weight:700; color:#f5a623; margin-bottom:6px;">Garry</div>
+            ${renderPlayerPredictionInputs("garry", round, idx, gPred, hasTeams, team1, team2, isWager)}
+          </div>
+  
+        </div>
+      </div>
+    `;
+  }
+
+  function renderPlayerPredictionInputs(player, round, idx, pred, hasTeams, team1, team2, isWager) {
+    if (isWager) {
+      return `
+        <div class="og-fields">
+          <input class="np-input score-input" data-player="${player}" data-round="${round}" data-idx="${idx}" data-field="wager" 
+                 type="number" placeholder="Wager pts" value="${pred.wager ?? ''}">
+          <input class="np-input" data-player="${player}" data-round="${round}" data-idx="${idx}" data-field="predictedWinner" 
+                 type="text" placeholder="Predicted Winner" value="${pred.predictedWinner || ''}">
+        </div>`;
+    }
+  
+    const score1 = pred.score1 ?? '';
+    const score2 = pred.score2 ?? '';
+    const isTie = score1 !== '' && score2 !== '' && Number(score1) === Number(score2);
+  
+    let qualifiedHTML = '';
+  
+    if (hasTeams) {
+      if (isTie) {
+        qualifiedHTML = `
+          <div class="og-fields">
+            <label class="field-label" style="font-size:0.75rem">Who qualifies?</label>
+            <select class="np-input" data-player="${player}" data-round="${round}" data-idx="${idx}" data-field="qualifiedTeam">
+              <option value="">Select</option>
+              <option value="${team1}" ${pred.qualifiedTeam === team1 ? 'selected' : ''}>${team1}</option>
+              <option value="${team2}" ${pred.qualifiedTeam === team2 ? 'selected' : ''}>${team2}</option>
+            </select>
+          </div>`;
+      } else if (score1 !== '' || score2 !== '') {
+        const autoWinner = Number(score1) > Number(score2) ? team1 : team2;
+        qualifiedHTML = `
+          <div class="og-fields">
+            <label class="field-label" style="font-size:0.75rem">Who qualifies?</label>
+            <div style="padding:4px 8px; background:#1a2235; border-radius:5px; font-size:0.85rem;">
+              ${autoWinner} <span style="color:#6b7a99">(auto)</span>
+            </div>
+          </div>`;
+      }
+    }
+  
+    return `
+      <div class="og-fields">
+        <input class="np-input score-input" data-player="${player}" data-round="${round}" data-idx="${idx}" data-field="score1" 
+               type="number" placeholder="0" value="${score1}">
+        <span class="vs-mini">–</span>
+        <input class="np-input score-input" data-player="${player}" data-round="${round}" data-idx="${idx}" data-field="score2" 
+               type="number" placeholder="0" value="${score2}">
+      </div>
+      ${qualifiedHTML}
     `;
   }
   
