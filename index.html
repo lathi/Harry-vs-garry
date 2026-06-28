@@ -539,35 +539,35 @@
   }
   
 
-  function renderNewPredMatch(round, idx, isWager){
-    const actual = state.matches?.[round]?.[idx] || {};
-    const gNP = state.newpred?.garry?.[round]?.[idx] || {};
-    const hNP = state.newpred?.harry?.[round]?.[idx] || {};
-    const played = actual.played;
+  // function renderNewPredMatch(round, idx, isWager){
+  //   const actual = state.matches?.[round]?.[idx] || {};
+  //   const gNP = state.newpred?.garry?.[round]?.[idx] || {};
+  //   const hNP = state.newpred?.harry?.[round]?.[idx] || {};
+  //   const played = actual.played;
   
-    const gPoints = played ? calcNPMatchPoints("garry", round, idx) : null;
-    const hPoints = played ? calcNPMatchPoints("harry", round, idx) : null;
+  //   const gPoints = played ? calcNPMatchPoints("garry", round, idx) : null;
+  //   const hPoints = played ? calcNPMatchPoints("harry", round, idx) : null;
   
-    return `
-      <div class="match-card og-match" data-round="${round}" data-idx="${idx}">
-        <div class="match-id">${ROUND_LABELS[round]} · Match ${idx + 1}</div>
+  //   return `
+  //     <div class="match-card og-match" data-round="${round}" data-idx="${idx}">
+  //       <div class="match-id">${ROUND_LABELS[round]} · Match ${idx + 1}</div>
   
-        ${actual.team1 
-          ? `<div class="actual-result">
-               <span class="matchup-teams">${esc(actual.team1)} vs ${esc(actual.team2)}</span>
-               ${played 
-                 ? `<strong>${actual.score1}–${actual.score2} → ${esc(actual.winner)}</strong>` 
-                 : `<span class="pending">⏳ Awaiting result</span>`}
-             </div>` 
-          : `<div class="actual-result pending">🔒 Teams will appear after R32 results</div>`}
+  //       ${actual.team1 
+  //         ? `<div class="actual-result">
+  //              <span class="matchup-teams">${esc(actual.team1)} vs ${esc(actual.team2)}</span>
+  //              ${played 
+  //                ? `<strong>${actual.score1}–${actual.score2} → ${esc(actual.winner)}</strong>` 
+  //                : `<span class="pending">⏳ Awaiting result</span>`}
+  //            </div>` 
+  //         : `<div class="actual-result pending">🔒 Teams will appear after R32 results</div>`}
   
-        <div class="og-players">
-          ${renderNPEntry("garry", "Garry", "garry-color", round, idx, gNP, actual, gPoints, isWager)}
-          ${renderNPEntry("harry", "Harry", "harry-color", round, idx, hNP, actual, hPoints, isWager)}
-        </div>
-      </div>
-    `;
-  }
+  //       <div class="og-players">
+  //         ${renderNPEntry("garry", "Garry", "garry-color", round, idx, gNP, actual, gPoints, isWager)}
+  //         ${renderNPEntry("harry", "Harry", "harry-color", round, idx, hNP, actual, hPoints, isWager)}
+  //       </div>
+  //     </div>
+  //   `;
+  // }
 
   // R32 - Linked to actual Admin fixtures
 
