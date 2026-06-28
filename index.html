@@ -1387,6 +1387,7 @@
     renderAdmin();
   };
 
+
   window.saveMatchFixtures = async (round, idx) => {
     const card = document.getElementById(`admin-${round}-${idx}`);
     if (!card) return;
@@ -1526,23 +1527,25 @@
         <div style="margin-bottom:8px;">${actual.team1 || "TBD"} vs ${actual.team2 || "TBD"}</div>
         
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+          <!-- Garry -->
+          <div>
+            <div style="color:#f5a623; font-weight:600; margin-bottom:4px;">Garry</div>
+            <input class="np-input score-input" data-player="garry" data-round="${round}" data-idx="${idx}" data-field="wager" 
+                   type="number" placeholder="Wager" value="${gWager.wager ?? ''}">
+            <input class="np-input" data-player="garry" data-round="${round}" data-idx="${idx}" data-field="predictedWinner" 
+                   type="text" placeholder="Predicted Winner" value="${gWager.predictedWinner || ''}">
+          </div>
+          
           <!-- Harry -->
           <div>
-            <div style="color:#4fc3f7; font-weight:600; margin-bottom:4px;">H</div>
+            <div style="color:#4fc3f7; font-weight:600; margin-bottom:4px;">Harry</div>
             <input class="np-input score-input" data-player="harry" data-round="${round}" data-idx="${idx}" data-field="wager" 
                    type="number" placeholder="Wager" value="${hWager.wager ?? ''}">
             <input class="np-input" data-player="harry" data-round="${round}" data-idx="${idx}" data-field="predictedWinner" 
                    type="text" placeholder="Predicted Winner" value="${hWager.predictedWinner || ''}">
           </div>
   
-          <!-- Garry -->
-          <div>
-            <div style="color:#f5a623; font-weight:600; margin-bottom:4px;">G</div>
-            <input class="np-input score-input" data-player="garry" data-round="${round}" data-idx="${idx}" data-field="wager" 
-                   type="number" placeholder="Wager" value="${gWager.wager ?? ''}">
-            <input class="np-input" data-player="garry" data-round="${round}" data-idx="${idx}" data-field="predictedWinner" 
-                   type="text" placeholder="Predicted Winner" value="${gWager.predictedWinner || ''}">
-          </div>
+          
         </div>
       </div>
     `;
