@@ -124,6 +124,7 @@
       <nav class="tabs">
         <button class="tab active" data-tab="og">🎯 OG Predictions</button>
         <button class="tab" data-tab="newpred">🔮 New Predictions</button>
+        <button class="tab" data-tab="wagers">💰 Wagers (SF & Final)</button>
         <button class="tab" data-tab="admin">📋 Results Admin</button>
         <button class="tab" data-tab="group">📊 Group Stage</button>
       </nav>
@@ -137,6 +138,16 @@
         <div id="admin-container">
         </div>
         </div>
+
+        <div id="tab-wagers" class="tab-panel">
+          <div class="section-header">
+            <h2>💰 Wagers - Semi Finals & Final</h2>
+            <p>Place wagers on SF and Final matches. Correct = +wager, Wrong = -wager.</p>
+          </div>
+          <div id="wager-container"></div>
+        </div>
+
+        
         <div id="tab-group"   class="tab-panel">
           <div class="card group-stage-card">
             <h2>Group Stage Scores</h2>
@@ -239,52 +250,50 @@
     return pts;
   }
 
-  function calcNewScore(player){
+
+  function calcNewScore(player) {
     let pts = 0;
     const np = state.newpred?.[player] || {};
-
-    for(const round of ROUNDS){
+  
+    for (const round of ROUNDS) {
       const roundMatches = state.matches?.[round] || {};
       const npRound = np[round] || {};
       const count = MATCH_COUNT[round];
-
-      for(let i = 0; i < count; i++){
+  
+      for (let i = 0; i < count; i++) {
         const actual = roundMatches[i] || {};
-        const pred   = npRound[i]      || {};
-        if(!actual.played) continue;
-
-        if(["R32","R16","QF"].includes(round)){
-          // +5 per team progressing (2 teams per match feed into next round)
-          // We award points for the winner advancing
-          if(actual.winner){
-            // player predicted score (we track score for these rounds)
-            // +5 for this match's winner advancing (1 team per match)
-            pts += NEW_PROGRESS; // always? No — we check if player picked the winner via qualifiedTeam
-            // Actually: "5 points for each team progressing" — since bracket propagates winners,
-            // we give +5 per correct prediction. We use pred.qualifiedTeam for new preds too.
-            // Correct: award +5 if player had qualifiedTeam correct
-          }
-          // Undo the unconditional +5 above — let's do it properly:
-          pts -= NEW_PROGRESS;
-          if(pred.qualifiedTeam && actual.winner && pred.qualifiedTeam === actual.winner){
+        const pred = npRound[i] || {};
+  
+        if (!actual.played) continue;
+  
+        if (round === "R32") {
+          // R32 - Linked to Admin
+          if (pred.qualifiedTeam && actual.winner && pred.qualifiedTeam === actual.winner) {
             pts += NEW_PROGRESS;
           }
-          // +10 correct score (not counting penalties)
-          if(pred.score1 !== undefined && pred.score2 !== undefined && actual.score1 !== undefined && actual.score2 !== undefined){
-            if(String(pred.score1)===String(actual.score1) && String(pred.score2)===String(actual.score2)){
-              pts += NEW_SCORE;
-            }
+          if (pred.score1 !== undefined && pred.score2 !== undefined &&
+              actual.score1 === pred.score1 && actual.score2 === pred.score2) {
+            pts += NEW_SCORE;
           }
         } else {
-          // SF / F — wager system
-          const wager = Number(pred.wager) || 0;
-          if(wager > 0 && pred.predictedWinner && actual.winner){
-            if(pred.predictedWinner === actual.winner) pts += wager;
-            else pts -= wager;
+          // R16, QF, SF, Final - Player defined
+          const predictedTeamsMatch =
+            (pred.team1 === actual.team1 && pred.team2 === actual.team2) ||
+            (pred.team1 === actual.team2 && pred.team2 === actual.team1);
+  
+          if (!predictedTeamsMatch) continue;
+  
+          if (pred.qualifiedTeam && actual.winner && pred.qualifiedTeam === actual.winner) {
+            pts += NEW_PROGRESS;
+          }
+          if (pred.score1 !== undefined && pred.score2 !== undefined &&
+              actual.score1 === pred.score1 && actual.score2 === pred.score2) {
+            pts += NEW_SCORE;
           }
         }
       }
     }
+  
     return pts;
   }
 
@@ -1447,6 +1456,72 @@
     await set(ref(db, `newpred/harry/predictedAdvancing/${round}`), checked);
     alert(`Saved predicted advancing teams for ${round}`);
   };
+
+  function renderWagerTab() {
+    const container = document.getElementById("wager-container");
+    if (!container) return;
+  
+    let html = `<div class="round-section">`;
+  
+    // SF Wagers
+    html += `<h3 class="round-title">Semi Finals</h3><div class="og-grid">`;
+    for (let i = 0; i < 2; i++) {
+      html += renderWagerMatch("SF", i);
+    }
+    html += `</div>`;
+  
+    // Final Wager
+    html += `<h3 class="round-title">Final</h3><div class="og-grid">`;
+    html += renderWagerMatch("F", 0);
+    html += `</div></div>`;
+  
+    container.innerHTML = html;
+    bindWagerInputs();
+  }
+
+  function renderWagerMatch(round, idx) {
+    const actual = state.matches?.[round]?.[idx] || {};
+    const hWager = state.newpred?.harry?.[round]?.[idx] || {};
+    const gWager = state.newpred?.garry?.[round]?.[idx] || {};
+  
+    return `
+      <div class="match-card">
+        <div class="match-id">${ROUND_LABELS[round]} Match ${idx + 1}</div>
+        <div style="margin-bottom:8px;">${actual.team1 || "TBD"} vs ${actual.team2 || "TBD"}</div>
+        
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+          <!-- Harry -->
+          <div>
+            <div style="color:#4fc3f7; font-weight:600; margin-bottom:4px;">H</div>
+            <input class="np-input score-input" data-player="harry" data-round="${round}" data-idx="${idx}" data-field="wager" 
+                   type="number" placeholder="Wager" value="${hWager.wager ?? ''}">
+            <input class="np-input" data-player="harry" data-round="${round}" data-idx="${idx}" data-field="predictedWinner" 
+                   type="text" placeholder="Predicted Winner" value="${hWager.predictedWinner || ''}">
+          </div>
+  
+          <!-- Garry -->
+          <div>
+            <div style="color:#f5a623; font-weight:600; margin-bottom:4px;">G</div>
+            <input class="np-input score-input" data-player="garry" data-round="${round}" data-idx="${idx}" data-field="wager" 
+                   type="number" placeholder="Wager" value="${gWager.wager ?? ''}">
+            <input class="np-input" data-player="garry" data-round="${round}" data-idx="${idx}" data-field="predictedWinner" 
+                   type="text" placeholder="Predicted Winner" value="${gWager.predictedWinner || ''}">
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  function bindWagerInputs() {
+    document.querySelectorAll("#wager-container .np-input").forEach(input => {
+      input.addEventListener("change", async (e) => {
+        const { player, round, idx, field } = e.target.dataset;
+        let val = e.target.value;
+        if (field === "wager") val = val === "" ? null : Number(val);
+        await set(ref(db, `newpred/${player}/${round}/${idx}/${field}`), val);
+      });
+    });
+  }
 
 </script>
 
