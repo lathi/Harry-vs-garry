@@ -535,13 +535,12 @@
     const played = actual.played;
     let badges = "";
   
-    // Only show points badge if match has been played
     if (played && points !== null) {
       badges = `<span class="pts-badge ${points > 0 ? 'pos' : points < 0 ? 'neg' : ''}">${points >= 0 ? '+' : ''}${points} pts</span>`;
     }
   
     if (isWager) {
-      // SF & Final - Wager system (keep as is, but always editable)
+      // SF & Final remain as wager system
       return `
         <div class="og-player-entry">
           <div class="og-player-header">
@@ -557,9 +556,10 @@
           </div>
         </div>`;
     } else {
-      // R32, R16, QF - Always editable
-      const showDropdown = ["R16", "QF"].includes(round);
-      const teamOptions = showDropdown ? getAvailableTeamsForMatch(round, idx) : [];
+      // R32, R16, QF → "Who qualifies?" is now always a dropdown of the two teams playing
+      const team1 = actual.team1 || "";
+      const team2 = actual.team2 || "";
+      const hasTeams = team1 && team2;
   
       return `
         <div class="og-player-entry">
@@ -567,7 +567,7 @@
             <span class="${colorClass} bold">${name}</span>${badges}
           </div>
   
-          <!-- Scores - Always editable -->
+          <!-- Score Prediction -->
           <div class="og-fields">
             <input class="np-input score-input" data-player="${player}" data-round="${round}" data-idx="${idx}" data-field="score1"
                    type="number" min="0" placeholder="0" value="${pred.score1 ?? ''}" />
@@ -576,16 +576,17 @@
                    type="number" min="0" placeholder="0" value="${pred.score2 ?? ''}" />
           </div>
   
-          <!-- Qualified Team -->
+          <!-- Who Qualifies? → Dropdown of the two teams -->
           <div class="og-fields">
             <label class="field-label">Who qualifies?</label>
-            ${showDropdown 
+            ${hasTeams 
               ? `<select class="np-input" data-player="${player}" data-round="${round}" data-idx="${idx}" data-field="qualifiedTeam">
                    <option value="">Select team</option>
-                   ${teamOptions.map(t => `<option value="${t}" ${pred.qualifiedTeam === t ? 'selected' : ''}>${t}</option>`).join('')}
+                   <option value="${team1}" ${pred.qualifiedTeam === team1 ? 'selected' : ''}>${team1}</option>
+                   <option value="${team2}" ${pred.qualifiedTeam === team2 ? 'selected' : ''}>${team2}</option>
                  </select>`
               : `<input class="np-input" data-player="${player}" data-round="${round}" data-idx="${idx}" data-field="qualifiedTeam"
-                        type="text" placeholder="Who qualifies?" value="${esc(pred.qualifiedTeam || '')}" />`
+                        type="text" placeholder="Teams not set in Admin yet" value="${esc(pred.qualifiedTeam || '')}" />`
             }
           </div>
         </div>`;
