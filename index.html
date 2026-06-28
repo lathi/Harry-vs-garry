@@ -29,6 +29,12 @@
   const ROUNDS = ["R32","R16","QF","SF","F"];
   const ROUND_LABELS = { R32:"Round of 32", R16:"Round of 16", QF:"Quarter Finals", SF:"Semi Finals", F:"Final" };
   const MATCH_COUNT  = { R32:16, R16:8, QF:4, SF:2, F:1 };
+  const ALL_TEAMS = [
+    "ALG", "ARG", "AUS", "AUT", "BEL", "BIH", "BRA", "CAN", "CMR", "COL",
+    "CPV", "CRC", "CRO", "COD", "DEN", "ECU", "EGY", "ENG", "ESP", "FRA",
+    "GER", "GHA", "HUN", "ITA", "JPN", "KOR", "MAR", "MEX", "NED", "NGA",
+    "NOR", "PAR", "POL", "POR", "QAT", "RSA", "SEN", "SRB", "SUI", "SWE",
+    "TUN", "TUR", "URU", "USA", "VEN", "WAL", "ZAM", "CIV"];
 
   // OG scoring tables
   const OG_QUALIFY = { R32:10, R16:10, QF:15, SF:20, F:25 };
@@ -320,34 +326,49 @@
   }
 
   // ── Leaderboard ───────────────────────────────────────────────────────────
-  
+    
   function renderLeaderboard() {
+    const garryGS = GS_GARRY;
+    const harryGS = GS_HARRY;
+  
+    const garryOG = calcOGScore("garry");
+    const harryOG = calcOGScore("harry");
+  
     const garryNew = calcNewScore("garry");
     const harryNew = calcNewScore("harry");
+  
     const garryWager = calcWagerScore("garry");
     const harryWager = calcWagerScore("harry");
   
     const garryTotal = totalScore("garry");
     const harryTotal = totalScore("harry");
   
+    const leading = garryTotal > harryTotal ? "garry" : harryTotal > garryTotal ? "harry" : "tie";
+  
     el("leaderboard").innerHTML = `
-      <div class="lb-card">
+      <div class="lb-card ${leading === 'garry' ? 'leading' : ''}">
+        <div class="lb-crown">${leading === 'garry' ? '👑' : ''}</div>
         <div class="lb-name garry-color">Garry</div>
         <div class="lb-total">${garryTotal}</div>
         <div class="lb-breakdown">
+          <span>Group: ${garryGS}</span>
+          <span>OG: ${garryOG}</span>
           <span>New: ${garryNew}</span>
-          <span>Wagers: ${garryWager}</span>
+          <span>Wager: ${garryWager}</span>
         </div>
       </div>
   
-      <div class="lb-vs">vs</div>
+      <div class="lb-vs">${leading === 'tie' ? '🤝' : '⚔️'}</div>
   
-      <div class="lb-card">
+      <div class="lb-card ${leading === 'harry' ? 'leading' : ''}">
+        <div class="lb-crown">${leading === 'harry' ? '👑' : ''}</div>
         <div class="lb-name harry-color">Harry</div>
         <div class="lb-total">${harryTotal}</div>
         <div class="lb-breakdown">
+          <span>Group: ${harryGS}</span>
+          <span>OG: ${harryOG}</span>
           <span>New: ${harryNew}</span>
-          <span>Wagers: ${harryWager}</span>
+          <span>Wager: ${harryWager}</span>
         </div>
       </div>
     `;
@@ -1241,24 +1262,22 @@
   }
 
   function getAvailableTeamsForMatch(round, idx) {
-    // R32 - fixed list of teams
-    if (round === "R32") {
-      return ["ALG", "ARG", "AUS", "AUT", 
-              "BEL", "BIH", "BRA", "CAN", 
-              "CIV", "COL", "CPV", "CRO",
-              "COD", "ECU", "EGY", "ENG",
-              "ESP", "FRA", "GER", "GHA",
-              "JPN", "MAR", "MEX", "NED",
-              "NOR", "PAR", "POR", "RSA",
-              "SEN", "SWE", "SUI", "USA"];
+    // For OG Predictions, always show all 48 teams
+    if (round !== "R32" && document.getElementById("tab-og").classList.contains("active")) {
+      return ALL_TEAMS;
     }
   
+    // Existing R32 logic
+    if (round === "R32") {
+      return ALL_TEAMS; // Now using full 48-team list
+    }
+  
+    // Rest of the function remains the same...
     const prevRoundMap = { R16: "R32", QF: "R16", SF: "QF", F: "SF" };
     const prevRound = prevRoundMap[round];
     if (!prevRound) return [];
   
     const available = new Set();
-  
     const prevMatches = state.matches?.[prevRound] || {};
     Object.values(prevMatches).forEach(match => {
       if (match.team1) available.add(match.team1);
@@ -1266,7 +1285,7 @@
       if (match.winner) available.add(match.winner);
     });
   
-    return Array.from(available);
+    return Array.from(available).sort();
   }
 
   function bindCleanAdminInputs() {
