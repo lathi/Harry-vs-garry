@@ -479,30 +479,60 @@
 
   // ── New Predictions tab ───────────────────────────────────────────────────
 
+
   function renderNewPred(){
     const panel = el("tab-newpred");
     
     let html = `
       <div class="section-header">
         <h2>🔮 New Predictions</h2>
-        <p>Primary: +5 per correct advancing team • Bonus: +10 for correct score. Edit predictions for both players below.</p>
+        <p>Primary scoring: +5 per correct advancing team • Bonus: +10 for correct predicted score</p>
       </div>
     `;
   
-    for (const round of ROUNDS) {
-      const count = MATCH_COUNT[round];
-      const isWagerRound = ["SF", "F"].includes(round);
+    // R32 - Linked to Admin fixtures
+    html += `<div class="round-section">
+      <h3 class="round-title">Round of 32 <span class="round-pts-info">Linked to actual fixtures</span></h3>
+      <div class="og-grid">`;
   
-      html += `<div class="round-section">
-        <h3 class="round-title">${ROUND_LABELS[round]}</h3>
-        <div class="og-grid">`;
-  
-      for (let i = 0; i < count; i++) {
-        html += renderNewPredMatchSideBySide(round, i, isWagerRound);
-      }
-  
-      html += `</div></div>`;
+    for (let i = 0; i < MATCH_COUNT.R32; i++) {
+      html += renderNewPredMatchLinked(round = "R32", i);
     }
+    html += `</div></div>`;
+  
+    // R16 - Player defined (8 fixed slots)
+    html += `<div class="round-section">
+      <h3 class="round-title">Round of 16 <span class="round-pts-info">Your predicted bracket (8 slots)</span></h3>
+      <div class="og-grid">`;
+    for (let i = 0; i < 8; i++) {
+      html += renderNewPredMatchFree("R16", i);
+    }
+    html += `</div></div>`;
+  
+    // QF - Player defined (4 fixed slots)
+    html += `<div class="round-section">
+      <h3 class="round-title">Quarter Finals <span class="round-pts-info">Your predicted bracket (4 slots)</span></h3>
+      <div class="og-grid">`;
+    for (let i = 0; i < 4; i++) {
+      html += renderNewPredMatchFree("QF", i);
+    }
+    html += `</div></div>`;
+  
+    // SF - Player defined (2 fixed slots)
+    html += `<div class="round-section">
+      <h3 class="round-title">Semi Finals <span class="round-pts-info">Your predicted bracket (2 slots)</span></h3>
+      <div class="og-grid">`;
+    for (let i = 0; i < 2; i++) {
+      html += renderNewPredMatchFree("SF", i);
+    }
+    html += `</div></div>`;
+  
+    // Final - Player defined (1 slot)
+    html += `<div class="round-section">
+      <h3 class="round-title">Final <span class="round-pts-info">Your predicted bracket (1 slot)</span></h3>
+      <div class="og-grid">`;
+    html += renderNewPredMatchFree("F", 0);
+    html += `</div></div>`;
   
     panel.innerHTML = html;
     bindNewPredInputs();
@@ -534,6 +564,102 @@
         <div class="og-players">
           ${renderNPEntry("garry", "Garry", "garry-color", round, idx, gNP, actual, gPoints, isWager)}
           ${renderNPEntry("harry", "Harry", "harry-color", round, idx, hNP, actual, hPoints, isWager)}
+        </div>
+      </div>
+    `;
+  }
+
+  // R32 - Linked to actual Admin fixtures
+
+  function renderNewPredMatchLinked(round, idx) {
+    const actual = state.matches?.[round]?.[idx] || {};
+    const hPred = state.newpred?.harry?.[round]?.[idx] || {};
+    const gPred = state.newpred?.garry?.[round]?.[idx] || {};
+  
+    const team1 = actual.team1 || "TBD";
+    const team2 = actual.team2 || "TBD";
+    const hasTeams = actual.team1 && actual.team2;
+  
+    return `
+      <div class="match-card" data-round="${round}" data-idx="${idx}">
+        <div class="match-id">${ROUND_LABELS[round]} Match ${idx + 1}</div>
+        <div class="actual-result" style="margin-bottom:8px;">
+          ${hasTeams ? `${team1} vs ${team2}` : "Fixture not set yet"}
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+          ${renderPlayerInputs("harry", round, idx, hPred, hasTeams, team1, team2)}
+          ${renderPlayerInputs("garry", round, idx, gPred, hasTeams, team1, team2)}
+        </div>
+      </div>
+    `;
+  }
+
+// R16 / QF / SF / Final - Player defined slots
+
+  function renderNewPredMatchFree(round, idx) {
+    const hPred = state.newpred?.harry?.[round]?.[idx] || {};
+    const gPred = state.newpred?.garry?.[round]?.[idx] || {};
+  
+    return `
+      <div class="match-card" data-round="${round}" data-idx="${idx}">
+        <div class="match-id">${ROUND_LABELS[round]} Slot ${idx + 1}</div>
+        
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+          ${renderPlayerInputsFree("harry", round, idx, hPred)}
+          ${renderPlayerInputsFree("garry", round, idx, gPred)}
+        </div>
+      </div>
+    `;
+  }
+  
+  function renderPlayerInputs(player, round, idx, pred, hasTeams, team1, team2) {
+    const score1 = pred.score1 ?? '';
+    const score2 = pred.score2 ?? '';
+    const isTie = score1 !== '' && score2 !== '' && Number(score1) === Number(score2);
+  
+    let qualifiedHTML = '';
+    if (hasTeams && isTie) {
+      qualifiedHTML = `
+        <div style="margin-top:6px;">
+          <label style="font-size:0.75rem">Who qualifies?</label>
+          <select class="np-input" data-player="${player}" data-round="${round}" data-idx="${idx}" data-field="qualifiedTeam">
+            <option value="">Select</option>
+            <option value="${team1}" ${pred.qualifiedTeam === team1 ? 'selected' : ''}>${team1}</option>
+            <option value="${team2}" ${pred.qualifiedTeam === team2 ? 'selected' : ''}>${team2}</option>
+          </select>
+        </div>`;
+    } else if (hasTeams && (score1 !== '' || score2 !== '')) {
+      const auto = Number(score1) > Number(score2) ? team1 : team2;
+      qualifiedHTML = `<div style="margin-top:6px; font-size:0.8rem;">→ ${auto} (auto)</div>`;
+    }
+  
+    return `
+      <div>
+        <div style="font-weight:600; color:${player === 'harry' ? '#4fc3f7' : '#f5a623'}; margin-bottom:4px;">${player}</div>
+        <div class="og-fields">
+          <input class="np-input score-input" data-player="${player}" data-round="${round}" data-idx="${idx}" data-field="score1" type="number" placeholder="0" value="${score1}">
+          <span class="vs-mini">–</span>
+          <input class="np-input score-input" data-player="${player}" data-round="${round}" data-idx="${idx}" data-field="score2" type="number" placeholder="0" value="${score2}">
+        </div>
+        ${qualifiedHTML}
+      </div>
+    `;
+  }
+
+
+  function renderPlayerInputsFree(player, round, idx, pred) {
+    return `
+      <div>
+        <div style="font-weight:600; color:${player === 'harry' ? '#4fc3f7' : '#f5a623'}; margin-bottom:4px;">${player}</div>
+        <div class="og-fields">
+          <input class="np-input" data-player="${player}" data-round="${round}" data-idx="${idx}" data-field="team1" type="text" placeholder="Team 1" value="${pred.team1 || ''}">
+          <span class="vs-mini">vs</span>
+          <input class="np-input" data-player="${player}" data-round="${round}" data-idx="${idx}" data-field="team2" type="text" placeholder="Team 2" value="${pred.team2 || ''}">
+        </div>
+        <div class="og-fields">
+          <input class="np-input score-input" data-player="${player}" data-round="${round}" data-idx="${idx}" data-field="score1" type="number" placeholder="0" value="${pred.score1 ?? ''}">
+          <span class="vs-mini">–</span>
+          <input class="np-input score-input" data-player="${player}" data-round="${round}" data-idx="${idx}" data-field="score2" type="number" placeholder="0" value="${pred.score2 ?? ''}">
         </div>
       </div>
     `;
