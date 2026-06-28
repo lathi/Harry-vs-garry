@@ -603,7 +603,8 @@
     const gPred = state.newpred?.garry?.[round]?.[idx] || {};
   
     // Get possible teams for dropdown (from previous round or R32)
-    const possibleTeams = getAvailableTeamsForMatch(round, idx);
+    // const possibleTeams = getAvailableTeamsForMatch(round, idx);
+    const possibleTeams = getTeamsForPredictedRound(round, player);
   
     return `
       <div class="match-card" data-round="${round}" data-idx="${idx}">
@@ -885,6 +886,38 @@
             </div>` : ''}
         </div>`;
     }
+  }
+
+  function getTeamsForPredictedRound(round, player) {
+    const prevRoundMap = {
+      R16: "R32",
+      QF: "R16",
+      SF: "QF",
+      F: "SF"
+    };
+  
+    const prevRound = prevRoundMap[round];
+    if (!prevRound) return [];
+  
+    const teams = new Set();
+  
+    // Get teams from Admin results (if available)
+    const adminMatches = state.matches?.[prevRound] || {};
+    Object.values(adminMatches).forEach(m => {
+      if (m.team1) teams.add(m.team1);
+      if (m.team2) teams.add(m.team2);
+      if (m.winner) teams.add(m.winner);
+    });
+  
+    // Get teams from player's own predictions in the previous round
+    const playerPreds = state.newpred?.[player]?.[prevRound] || {};
+    Object.values(playerPreds).forEach(pred => {
+      if (pred.team1) teams.add(pred.team1);
+      if (pred.team2) teams.add(pred.team2);
+    });
+  
+    // Return sorted alphabetically
+    return Array.from(teams).sort((a, b) => a.localeCompare(b));
   }
 
   function calcNPMatchPoints(player, round, idx){
