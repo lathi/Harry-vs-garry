@@ -531,15 +531,17 @@
     `;
   }
 
-  function renderNPEntry(player, name, colorClass, round, idx, pred, actual, points, isWager){
+  function renderNPEntry(player, name, colorClass, round, idx, pred, actual, points, isWager) {
     const played = actual.played;
     let badges = "";
+  
+    // Only show points badge if match has been played
     if (played && points !== null) {
       badges = `<span class="pts-badge ${points > 0 ? 'pos' : points < 0 ? 'neg' : ''}">${points >= 0 ? '+' : ''}${points} pts</span>`;
     }
   
     if (isWager) {
-      // SF and Final stay the same (wager system)
+      // SF & Final - Wager system (keep as is, but always editable)
       return `
         <div class="og-player-entry">
           <div class="og-player-header">
@@ -548,14 +550,14 @@
           <div class="og-fields">
             <label class="field-label">Wager</label>
             <input class="np-input score-input" data-player="${player}" data-round="${round}" data-idx="${idx}" data-field="wager"
-                   type="number" min="0" placeholder="pts" value="${pred.wager ?? ''}" ${played ? 'readonly' : ''} />
+                   type="number" min="0" placeholder="pts" value="${pred.wager ?? ''}" />
             <label class="field-label">Pick winner</label>
             <input class="np-input" data-player="${player}" data-round="${round}" data-idx="${idx}" data-field="predictedWinner"
-                   type="text" placeholder="Winner" value="${esc(pred.predictedWinner || '')}" ${played ? 'readonly' : ''} />
+                   type="text" placeholder="Winner" value="${esc(pred.predictedWinner || '')}" />
           </div>
         </div>`;
     } else {
-      // R32, R16, QF → Use dropdown for qualifiedTeam (except R32 which can stay text or dropdown)
+      // R32, R16, QF - Always editable
       const showDropdown = ["R16", "QF"].includes(round);
       const teamOptions = showDropdown ? getAvailableTeamsForMatch(round, idx) : [];
   
@@ -564,14 +566,17 @@
           <div class="og-player-header">
             <span class="${colorClass} bold">${name}</span>${badges}
           </div>
+  
+          <!-- Scores - Always editable -->
           <div class="og-fields">
             <input class="np-input score-input" data-player="${player}" data-round="${round}" data-idx="${idx}" data-field="score1"
-                   type="number" min="0" placeholder="0" value="${pred.score1 ?? ''}" ${played ? 'readonly' : ''} />
+                   type="number" min="0" placeholder="0" value="${pred.score1 ?? ''}" />
             <span class="vs-mini">–</span>
             <input class="np-input score-input" data-player="${player}" data-round="${round}" data-idx="${idx}" data-field="score2"
-                   type="number" min="0" placeholder="0" value="${pred.score2 ?? ''}" ${played ? 'readonly' : ''} />
+                   type="number" min="0" placeholder="0" value="${pred.score2 ?? ''}" />
           </div>
   
+          <!-- Qualified Team -->
           <div class="og-fields">
             <label class="field-label">Who qualifies?</label>
             ${showDropdown 
@@ -580,7 +585,7 @@
                    ${teamOptions.map(t => `<option value="${t}" ${pred.qualifiedTeam === t ? 'selected' : ''}>${t}</option>`).join('')}
                  </select>`
               : `<input class="np-input" data-player="${player}" data-round="${round}" data-idx="${idx}" data-field="qualifiedTeam"
-                        type="text" placeholder="Who qualifies?" value="${esc(pred.qualifiedTeam || '')}" ${played ? 'readonly' : ''} />`
+                        type="text" placeholder="Who qualifies?" value="${esc(pred.qualifiedTeam || '')}" />`
             }
           </div>
         </div>`;
