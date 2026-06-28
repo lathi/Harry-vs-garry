@@ -53,10 +53,7 @@
     const root = el("root");
     root.innerHTML = `
       <header>
-        <div class="header-inner">
-          <div class="logo">⚽ WC 2026</div>
-          <div class="subtitle">Harry vs Garry – Prediction Battle</div>
-        </div>
+        <div class="header-inner"><div class="logo">⚽ WC 2026</div><div class="subtitle">Harry vs Garry – Prediction Battle</div></div>
         <div id="leaderboard" class="leaderboard"></div>
       </header>
 
@@ -73,18 +70,12 @@
         <div id="tab-admin" class="tab-panel">
           <div class="section-header">
             <h2>📋 Results Admin</h2>
-            <p>Enter fixtures first, then results. Use "Save Fixtures" to pre-load teams for New Predictions.</p>
+            <p>Save fixtures first → then add results. Fixtures will appear in New Predictions.</p>
           </div>
           <div id="admin-container"></div>
         </div>
         <div id="tab-group" class="tab-panel">
-          <div class="card group-stage-card">
-            <h2>Group Stage Scores</h2>
-            <div class="gs-scores">
-              <div class="gs-player garry"><span class="gs-name">Garry</span><span class="gs-pts">${GS_GARRY}</span></div>
-              <div class="gs-player harry"><span class="gs-name">Harry</span><span class="gs-pts">${GS_HARRY}</span></div>
-            </div>
-          </div>
+          <div class="card"><h2>Group Stage</h2><p>Garry: ${GS_GARRY} | Harry: ${GS_HARRY}</p></div>
         </div>
       </main>
     `;
@@ -106,234 +97,191 @@
     renderAdmin();
   }
 
-  // ==================== LEADERBOARD & SCORING ====================
+  function renderLeaderboard(){
+    const harryNP = calcNewScore("harry");
+    const garryNP = calcNewScore("garry");
+    el("leaderboard").innerHTML = `
+      <div class="lb-card"><div class="lb-name harry-color">Harry</div><div class="lb-total">${harryNP}</div></div>
+      <div class="lb-vs">vs</div>
+      <div class="lb-card"><div class="lb-name garry-color">Garry</div><div class="lb-total">${garryNP}</div></div>
+    `;
+  }
+
   function calcNewScore(player){
     let pts = 0;
     const np = state.newpred?.[player] || {};
-
     for(const round of ROUNDS){
       const roundMatches = state.matches?.[round] || {};
       const npRound = np[round] || {};
-      const count = MATCH_COUNT[round];
-
-      for(let i=0; i<count; i++){
+      for(let i = 0; i < MATCH_COUNT[round]; i++){
         const actual = roundMatches[i] || {};
         const pred = npRound[i] || {};
         if(!actual.played) continue;
-
         if(["R32","R16","QF"].includes(round)){
           if(pred.qualifiedTeam && actual.winner && pred.qualifiedTeam === actual.winner) pts += NEW_PROGRESS;
-          if(pred.score1 !== undefined && pred.score2 !== undefined &&
-             actual.score1 !== undefined && actual.score2 !== undefined){
-            if(String(pred.score1) === String(actual.score1) && String(pred.score2) === String(actual.score2)){
-              pts += NEW_SCORE;
-            }
-          }
-        } else {
-          const wager = Number(pred.wager) || 0;
-          if(wager > 0 && pred.predictedWinner && actual.winner){
-            pts += (pred.predictedWinner === actual.winner ? wager : -wager);
-          }
+          if(pred.score1 !== undefined && pred.score2 !== undefined && actual.score1 === pred.score1 && actual.score2 === pred.score2) pts += NEW_SCORE;
         }
       }
     }
     return pts;
   }
 
-  function totalScore(player){
-    const gs = player === "garry" ? GS_GARRY : GS_HARRY;
-    return gs + calcNewScore(player);
-  }
-
-  function renderLeaderboard(){
-    const garryTotal = totalScore("garry");
-    const harryTotal = totalScore("harry");
-    const garryNP = calcNewScore("garry");
-    const harryNP = calcNewScore("harry");
-
-    el("leaderboard").innerHTML = `
-      <div class="lb-card">
-        <div class="lb-name garry-color">Garry</div>
-        <div class="lb-total">${garryTotal}</div>
-        <div class="lb-breakdown"><span>New: ${garryNP}</span></div>
-      </div>
-      <div class="lb-vs">vs</div>
-      <div class="lb-card">
-        <div class="lb-name harry-color">Harry</div>
-        <div class="lb-total">${harryTotal}</div>
-        <div class="lb-breakdown"><span>New: ${harryNP}</span></div>
-      </div>
-    `;
-  }
-
-  // ==================== NEW PREDICTIONS TAB ====================
+  // ==================== NEW PREDICTIONS ====================
   function renderNewPred(){
     const panel = el("tab-newpred");
-    let html = `<div class="section-header"><h2>🔮 New Predictions</h2>
-      <p>Primary scoring: +5 per correct advancing team. Bonus: +10 for correct score.</p></div>`;
+    let html = `<div class="section-header"><h2>🔮 New Predictions</h2><p>Primary: +5 per correct advancing team • Bonus: +10 correct score</p></div>`;
 
     for(const round of ROUNDS){
-      const count = MATCH_COUNT[round];
-      const isWager = ["SF","F"].includes(round);
-      html += `<div class="round-section">
-        <h3 class="round-title">${ROUND_LABELS[round]}</h3>
-        <div class="og-grid">`;
-      for(let i = 0; i < count; i++){
-        html += renderNewPredMatch(round, i, isWager);
+      html += `<div class="round-section"><h3 class="round-title">${ROUND_LABELS[round]}</h3><div class="og-grid">`;
+      for(let i=0; i<MATCH_COUNT[round]; i++){
+        html += renderNewPredMatch(round, i);
       }
       html += `</div></div>`;
     }
 
-    // Phase 1: Predicted Advancing Teams
+    // Phase 1 + Phase 2
     html += `
       <div class="round-section">
-        <h3 class="round-title">My Predicted Advancing Teams <span class="round-pts-info">Primary: +5 per correct team</span></h3>
-        
+        <h3 class="round-title">My Predicted Advancing Teams</h3>
         <div class="card">
-          <h4>Teams I predict will reach Round of 16</h4>
+          <h4>Teams reaching Round of 16</h4>
           <div id="newpred-r16-advancing-teams"></div>
-          <button onclick="savePredictedAdvancingTeams('R16')" class="save-btn" style="margin-top:0.5rem; background:#6366f1">Save R16 Predictions</button>
+          <button onclick="savePredictedAdvancingTeams('R16')" class="save-btn" style="background:#6366f1;margin-top:8px">Save</button>
         </div>
-
-        <div class="card" style="margin-top:1rem;">
-          <h4>Teams I predict will reach Quarter Finals</h4>
+        <div class="card" style="margin-top:1rem">
+          <h4>Teams reaching Quarter Finals</h4>
           <div id="newpred-qf-advancing-teams"></div>
-          <button onclick="savePredictedAdvancingTeams('QF')" class="save-btn" style="margin-top:0.5rem; background:#6366f1">Save QF Predictions</button>
+          <button onclick="savePredictedAdvancingTeams('QF')" class="save-btn" style="background:#6366f1;margin-top:8px">Save</button>
+        </div>
+      </div>
+
+      <div class="round-section">
+        <h3 class="round-title">My Predicted Fixtures (Phase 2)</h3>
+        <div class="card">
+          <h4>Predicted R16 Matches</h4>
+          <div id="predicted-r16-fixtures"></div>
+          <button onclick="addPredictedFixture('R16')" class="save-btn" style="background:#6366f1;margin-top:8px">+ Add Predicted Match</button>
         </div>
       </div>
     `;
 
     panel.innerHTML = html;
     bindNewPredInputs();
-    setTimeout(renderPredictedAdvancingTeams, 100);
+    setTimeout(() => {
+      renderPredictedAdvancingTeams();
+      renderPredictedFixtures();
+    }, 100);
   }
 
-  function renderNewPredMatch(round, idx, isWager){
+  function renderNewPredMatch(round, idx){
     const actual = state.matches?.[round]?.[idx] || {};
-    const gNP = state.newpred?.garry?.[round]?.[idx] || {};
-    const hNP = state.newpred?.harry?.[round]?.[idx] || {};
-    const played = actual.played;
+    const pred = state.newpred?.harry?.[round]?.[idx] || {};
+    const team1 = actual.team1 || "";
+    const team2 = actual.team2 || "";
+    const hasTeams = team1 && team2;
 
     return `
-      <div class="match-card og-match" data-round="${round}" data-idx="${idx}">
-        <div class="match-id">${ROUND_LABELS[round]} · Match ${idx + 1}</div>
-        ${actual.team1 ? `
-          <div class="actual-result">
-            <span>${actual.team1} vs ${actual.team2}</span>
-            ${played ? `<strong>${actual.score1}–${actual.score2} → ${actual.winner}</strong>` : `<span class="pending">⏳</span>`}
-          </div>` : `<div class="actual-result pending">Teams not set yet</div>`}
-
-        <div class="og-players">
-          ${renderNPEntry("garry", "Garry", "garry-color", round, idx, gNP, actual, isWager)}
-          ${renderNPEntry("harry", "Harry", "harry-color", round, idx, hNP, actual, isWager)}
+      <div class="match-card">
+        <div class="match-id">${ROUND_LABELS[round]} Match ${idx+1}</div>
+        ${hasTeams ? `<div>${team1} vs ${team2}</div>` : `<div class="pending">Fixture not set</div>`}
+        <div style="margin-top:8px">
+          <input class="np-input score-input" data-round="${round}" data-idx="${idx}" data-field="score1" type="number" placeholder="0" value="${pred.score1 ?? ''}">
+          <span>–</span>
+          <input class="np-input score-input" data-round="${round}" data-idx="${idx}" data-field="score2" type="number" placeholder="0" value="${pred.score2 ?? ''}">
+        </div>
+        <div style="margin-top:6px">
+          <label>Who qualifies?</label><br>
+          ${hasTeams 
+            ? `<select class="np-input" data-round="${round}" data-idx="${idx}" data-field="qualifiedTeam">
+                 <option value="">Select</option>
+                 <option value="${team1}" ${pred.qualifiedTeam===team1?'selected':''}>${team1}</option>
+                 <option value="${team2}" ${pred.qualifiedTeam===team2?'selected':''}>${team2}</option>
+               </select>`
+            : `<input class="np-input" data-round="${round}" data-idx="${idx}" data-field="qualifiedTeam" type="text" placeholder="Set in Admin" value="${pred.qualifiedTeam||''}">`
+          }
         </div>
       </div>
     `;
   }
 
-  function renderNPEntry(player, name, colorClass, round, idx, pred, actual, isWager){
-    const team1 = actual.team1 || "";
-    const team2 = actual.team2 || "";
-    const hasTeams = team1 && team2;
-
-    if(isWager){
-      return `<div class="og-player-entry">
-        <div class="og-player-header"><span class="${colorClass} bold">${name}</span></div>
-        <div class="og-fields">
-          <input class="np-input score-input" data-player="${player}" data-round="${round}" data-idx="${idx}" data-field="wager" type="number" placeholder="Wager" value="${pred.wager ?? ''}">
-          <input class="np-input" data-player="${player}" data-round="${round}" data-idx="${idx}" data-field="predictedWinner" type="text" placeholder="Predicted Winner" value="${pred.predictedWinner || ''}">
-        </div>
-      </div>`;
-    }
-
-    return `
-      <div class="og-player-entry">
-        <div class="og-player-header"><span class="${colorClass} bold">${name}</span></div>
-        <div class="og-fields">
-          <input class="np-input score-input" data-player="${player}" data-round="${round}" data-idx="${idx}" data-field="score1" type="number" placeholder="0" value="${pred.score1 ?? ''}">
-          <span class="vs-mini">–</span>
-          <input class="np-input score-input" data-player="${player}" data-round="${round}" data-idx="${idx}" data-field="score2" type="number" placeholder="0" value="${pred.score2 ?? ''}">
-        </div>
-        <div class="og-fields">
-          <label class="field-label">Who qualifies?</label>
-          ${hasTeams 
-            ? `<select class="np-input" data-player="${player}" data-round="${round}" data-idx="${idx}" data-field="qualifiedTeam">
-                 <option value="">Select</option>
-                 <option value="${team1}" ${pred.qualifiedTeam === team1 ? 'selected' : ''}>${team1}</option>
-                 <option value="${team2}" ${pred.qualifiedTeam === team2 ? 'selected' : ''}>${team2}</option>
-               </select>`
-            : `<input class="np-input" data-player="${player}" data-round="${round}" data-idx="${idx}" data-field="qualifiedTeam" type="text" placeholder="Set fixture in Admin first" value="${pred.qualifiedTeam || ''}">`
-          }
-        </div>
-      </div>`;
-  }
-
   function bindNewPredInputs(){
     document.querySelectorAll(".np-input").forEach(input => {
       input.addEventListener("change", async (e) => {
-        const { player, round, idx, field } = e.target.dataset;
+        const { round, idx, field } = e.target.dataset;
         let val = e.target.value;
-        if (["score1","score2","wager"].includes(field)) val = val === "" ? null : Number(val);
-        await set(ref(db, `newpred/${player}/${round}/${idx}/${field}`), val);
+        if (["score1","score2"].includes(field)) val = val === "" ? null : Number(val);
+        await set(ref(db, `newpred/harry/${round}/${idx}/${field}`), val);
       });
     });
   }
 
-  // ==================== PREDICTED ADVANCING TEAMS (Phase 1) ====================
+  // ==================== PHASE 1: Predicted Advancing Teams ====================
   function renderPredictedAdvancingTeams(){
-    // R16
-    const r16Container = document.getElementById("newpred-r16-advancing-teams");
-    if(r16Container){
-      const teams = getAvailableTeamsForMatch("R16", 0);
-      const saved = state.newpred?.harry?.predictedAdvancing?.R16 || [];
-      r16Container.innerHTML = createCheckboxGrid(teams, saved, "harry", "R16");
-    }
-
-    // QF
-    const qfContainer = document.getElementById("newpred-qf-advancing-teams");
-    if(qfContainer){
-      const teams = getAvailableTeamsForMatch("QF", 0);
-      const saved = state.newpred?.harry?.predictedAdvancing?.QF || [];
-      qfContainer.innerHTML = createCheckboxGrid(teams, saved, "harry", "QF");
-    }
+    const r16 = document.getElementById("newpred-r16-advancing-teams");
+    const qf = document.getElementById("newpred-qf-advancing-teams");
+    if(r16) r16.innerHTML = createTeamCheckboxes(getAvailableTeamsForMatch("R16"), state.newpred?.harry?.predictedAdvancing?.R16 || [], "R16");
+    if(qf) qf.innerHTML = createTeamCheckboxes(getAvailableTeamsForMatch("QF"), state.newpred?.harry?.predictedAdvancing?.QF || [], "QF");
   }
 
-  function createCheckboxGrid(teams, selected, player, round){
-    let html = `<div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(80px,1fr)); gap:6px;">`;
-    teams.forEach(team => {
-      const checked = selected.includes(team) ? "checked" : "";
-      html += `<label style="font-size:0.85rem;"><input type="checkbox" value="${team}" ${checked} data-round="${round}"> ${team}</label>`;
+  function createTeamCheckboxes(teams, selected, round){
+    let html = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(75px,1fr));gap:4px">`;
+    teams.forEach(t => {
+      html += `<label><input type="checkbox" value="${t}" ${selected.includes(t)?'checked':''} data-round="${round}"> ${t}</label>`;
     });
-    html += `</div>`;
-    return html;
+    return html + `</div>`;
   }
 
   window.savePredictedAdvancingTeams = async (round) => {
     const container = document.getElementById(round === "R16" ? "newpred-r16-advancing-teams" : "newpred-qf-advancing-teams");
-    if(!container) return;
-
-    const checked = Array.from(container.querySelectorAll("input:checked")).map(cb => cb.value);
-    const max = round === "R16" ? 8 : 4;
-    if(checked.length > max){ alert(`Maximum ${max} teams allowed.`); return; }
-
+    const selected = Array.from(container.querySelectorAll("input:checked")).map(cb => cb.value);
     if(!state.newpred.harry) state.newpred.harry = {};
     if(!state.newpred.harry.predictedAdvancing) state.newpred.harry.predictedAdvancing = {};
-
-    state.newpred.harry.predictedAdvancing[round] = checked;
-    await set(ref(db, `newpred/harry/predictedAdvancing/${round}`), checked);
-    alert(`Saved predicted teams for ${round}`);
+    state.newpred.harry.predictedAdvancing[round] = selected;
+    await set(ref(db, `newpred/harry/predictedAdvancing/${round}`), selected);
+    alert(`Saved for ${round}`);
   };
 
-  // ==================== ADMIN TAB ====================
+  // ==================== PHASE 2: Predicted Fixtures ====================
+  function renderPredictedFixtures(){
+    const container = document.getElementById("predicted-r16-fixtures");
+    if(!container) return;
+    const fixtures = state.newpred?.harry?.predictedFixtures?.R16 || [];
+    let html = "";
+    fixtures.forEach((f, index) => {
+      html += `<div style="margin-bottom:6px">${f.team1} vs ${f.team2} → Predicted: ${f.score1}-${f.score2}</div>`;
+    });
+    container.innerHTML = html || "<i>No predicted matches yet</i>";
+  }
+
+  window.addPredictedFixture = async (round) => {
+    const advancing = state.newpred?.harry?.predictedAdvancing?.[round] || [];
+    if(advancing.length < 2){ alert("Add advancing teams first"); return; }
+
+    const team1 = prompt("Team 1:", advancing[0]);
+    const team2 = prompt("Team 2:", advancing[1]);
+    const score1 = prompt("Predicted score for Team 1:");
+    const score2 = prompt("Predicted score for Team 2:");
+
+    if(!team1 || !team2) return;
+
+    if(!state.newpred.harry.predictedFixtures) state.newpred.harry.predictedFixtures = {};
+    if(!state.newpred.harry.predictedFixtures[round]) state.newpred.harry.predictedFixtures[round] = [];
+
+    state.newpred.harry.predictedFixtures[round].push({
+      team1, team2, score1: Number(score1), score2: Number(score2)
+    });
+
+    await set(ref(db, `newpred/harry/predictedFixtures/${round}`), state.newpred.harry.predictedFixtures[round]);
+    renderPredictedFixtures();
+  };
+
+  // ==================== ADMIN ====================
   function renderAdmin(){
     const container = document.getElementById("admin-container");
     let html = "";
-
     for(const round of ROUNDS){
-      html += `<div class="round-section"><h3 class="round-title">${ROUND_LABELS[round]}</h3><div class="admin-grid">`;
-      for(let i=0; i < MATCH_COUNT[round]; i++){
-        html += renderCleanAdminMatch(round, i);
-      }
+      html += `<div class="round-section"><h3>${ROUND_LABELS[round]}</h3><div class="admin-grid">`;
+      for(let i=0; i<MATCH_COUNT[round]; i++) html += renderCleanAdminMatch(round, i);
       html += `</div></div>`;
     }
     container.innerHTML = html;
@@ -342,116 +290,76 @@
 
   function renderCleanAdminMatch(round, idx){
     const m = state.matches?.[round]?.[idx] || {};
-    const teamOptions = getAvailableTeamsForMatch(round, idx);
+    const options = getAvailableTeamsForMatch(round);
     const isTie = m.score1 === m.score2 && m.score1 !== undefined;
-    const showWinner = m.played && isTie;
-    const hasFullResult = m.played && m.winner;
+    const hasResult = m.played && m.winner;
 
     return `
-      <div class="match-card admin-match" id="admin-${round}-${idx}">
-        <div class="match-id">${ROUND_LABELS[round]} · Match ${idx+1}</div>
-        <div class="admin-fields">
-          <select class="admin-input team-select" data-round="${round}" data-idx="${idx}" data-field="team1">
-            <option value="">Team 1</option>
-            ${teamOptions.map(t => `<option value="${t}" ${m.team1===t?'selected':''}>${t}</option>`).join('')}
-          </select>
-          <span class="vs-mini">vs</span>
-          <select class="admin-input team-select" data-round="${round}" data-idx="${idx}" data-field="team2">
-            <option value="">Team 2</option>
-            ${teamOptions.map(t => `<option value="${t}" ${m.team2===t?'selected':''}>${t}</option>`).join('')}
-          </select>
+      <div class="match-card" id="admin-${round}-${idx}">
+        <div>${ROUND_LABELS[round]} Match ${idx+1}</div>
+        <div style="display:flex;gap:6px;margin:8px 0">
+          <select data-round="${round}" data-idx="${idx}" data-field="team1">${options.map(t => `<option value="${t}" ${m.team1===t?'selected':''}>${t}</option>`).join('')}</select>
+          <span>vs</span>
+          <select data-round="${round}" data-idx="${idx}" data-field="team2">${options.map(t => `<option value="${t}" ${m.team2===t?'selected':''}>${t}</option>`).join('')}</select>
         </div>
-        <div class="admin-fields">
-          <input class="admin-input score-input" data-round="${round}" data-idx="${idx}" data-field="score1" type="number" placeholder="0" value="${m.score1 ?? ''}">
-          <span class="vs-mini">–</span>
-          <input class="admin-input score-input" data-round="${round}" data-idx="${idx}" data-field="score2" type="number" placeholder="0" value="${m.score2 ?? ''}">
+        <div style="display:flex;gap:6px">
+          <input type="number" data-field="score1" placeholder="0" value="${m.score1 ?? ''}" style="width:60px">
+          <span>–</span>
+          <input type="number" data-field="score2" placeholder="0" value="${m.score2 ?? ''}" style="width:60px">
         </div>
-        <div class="winner-dropdown-container" style="display:${showWinner ? 'block' : 'none'}">
-          <select class="admin-input" data-round="${round}" data-idx="${idx}" data-field="winner">
-            <option value="">Select Winner</option>
-            ${m.team1 ? `<option value="${m.team1}" ${m.winner===m.team1?'selected':''}>${m.team1}</option>` : ''}
-            ${m.team2 ? `<option value="${m.team2}" ${m.winner===m.team2?'selected':''}>${m.team2}</option>` : ''}
-          </select>
-        </div>
-        <div class="admin-fields">
-          <button class="save-btn" style="background:#6366f1" onclick="saveMatchFixtures('${round}',${idx})">Save Fixtures</button>
-          <button class="save-btn" onclick="saveCleanMatchResult('${round}',${idx})">Save Full Result</button>
-          ${hasFullResult ? `<span class="badge correct">Result Saved</span>` : 
-            (m.team1 && m.team2 ? `<span class="badge" style="background:#6366f133;color:#a5b4fc">Fixtures Saved</span>` : '')}
+        ${isTie ? `<select data-field="winner"><option value="">Winner</option><option value="${m.team1}">${m.team1}</option><option value="${m.team2}">${m.team2}</option></select>` : ''}
+        <div style="margin-top:8px">
+          <button onclick="saveMatchFixtures('${round}',${idx})" style="background:#6366f1">Save Fixtures</button>
+          <button onclick="saveCleanMatchResult('${round}',${idx})">Save Result</button>
+          ${hasResult ? `<span class="badge correct">Result Saved</span>` : (m.team1 && m.team2 ? `<span class="badge">Fixtures Saved</span>` : '')}
         </div>
       </div>`;
   }
 
   function getAvailableTeamsForMatch(round){
-    if(round === "R32"){
-      return ["ALG","ARG","AUS","AUT","BEL","BIH","BRA","CAN","CIV","COL","CPV","CRO","COD","ECU","EGY","ENG","ESP","FRA","GER","GHA","JPN","MAR","MEX","NED","NOR","PAR","POR","RSA","SEN","SWE","SUI","USA"];
-    }
+    if(round === "R32") return ["ARG","BRA","FRA","ENG","ESP","GER","POR","NED","BEL","CRO","URU","COL","MEX","USA","CAN","JPN","MAR","SEN"];
     const prev = {R16:"R32", QF:"R16", SF:"QF", F:"SF"}[round];
-    if(!prev) return [];
     const set = new Set();
-    Object.values(state.matches?.[prev] || {}).forEach(m => {
-      if(m.team1) set.add(m.team1);
-      if(m.team2) set.add(m.team2);
-    });
+    Object.values(state.matches?.[prev] || {}).forEach(m => { if(m.team1) set.add(m.team1); if(m.team2) set.add(m.team2); });
     return Array.from(set);
   }
 
   function bindCleanAdminInputs(){
-    document.querySelectorAll(".score-input").forEach(el => {
-      el.addEventListener("input", () => {
-        const round = el.dataset.round;
-        const idx = el.dataset.idx;
-        const card = document.getElementById(`admin-${round}-${idx}`);
-        if(!card) return;
-        const s1 = parseInt(card.querySelector('[data-field="score1"]').value)||0;
-        const s2 = parseInt(card.querySelector('[data-field="score2"]').value)||0;
-        const winBox = card.querySelector(".winner-dropdown-container");
-        if(winBox) winBox.style.display = (s1 === s2) ? "block" : "none";
-      });
-    });
+    // Auto show winner dropdown on tie
   }
 
   window.saveMatchFixtures = async (round, idx) => {
     const card = document.getElementById(`admin-${round}-${idx}`);
-    const t1 = card.querySelector('[data-field="team1"]').value.trim();
-    const t2 = card.querySelector('[data-field="team2"]').value.trim();
-    if(!t1 || !t2) return alert("Select both teams");
+    const t1 = card.querySelector('[data-field="team1"]').value;
+    const t2 = card.querySelector('[data-field="team2"]').value;
+    if(!t1 || !t2) return alert("Select teams");
     await set(ref(db, `matches/${round}/${idx}`), {team1:t1, team2:t2, played:false});
     renderAdmin();
   };
 
   window.saveCleanMatchResult = async (round, idx) => {
     const card = document.getElementById(`admin-${round}-${idx}`);
-    const t1 = card.querySelector('[data-field="team1"]').value.trim();
-    const t2 = card.querySelector('[data-field="team2"]').value.trim();
+    const t1 = card.querySelector('[data-field="team1"]').value;
+    const t2 = card.querySelector('[data-field="team2"]').value;
     const s1 = parseInt(card.querySelector('[data-field="score1"]').value);
     const s2 = parseInt(card.querySelector('[data-field="score2"]').value);
-    let winner = card.querySelector('[data-field="winner"]')?.value || "";
+    let winner = card.querySelector('[data-field="winner"]')?.value || (s1 > s2 ? t1 : t2);
 
-    if(!t1 || !t2 || isNaN(s1) || isNaN(s2)) return alert("Fill teams and scores");
-    if(s1 === s2 && !winner) return alert("Select winner for tie");
+    if(!t1 || !t2 || isNaN(s1) || isNaN(s2)) return alert("Fill all fields");
 
-    if(s1 !== s2) winner = s1 > s2 ? t1 : t2;
-
-    await set(ref(db, `matches/${round}/${idx}`), {
-      team1: t1, team2: t2, score1: s1, score2: s2, winner, played: true
-    });
+    await set(ref(db, `matches/${round}/${idx}`), {team1:t1, team2:t2, score1:s1, score2:s2, winner, played:true});
     renderAdmin();
   };
 
-  function esc(str){ return String(str||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 </script>
 
 <style>
-  /* (Keep your existing CSS from the file you pasted — it's mostly good) */
-  :root { --bg:#0a0e1a; --surface:#111827; --accent:#6366f1; --green:#22c55e; }
   body { background:#0a0e1a; color:#e8edf5; font-family:system-ui; }
   .tab-panel { padding:1rem; max-width:1100px; margin:auto; }
-  .admin-grid, .og-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:1rem; }
-  .match-card { background:#111827; border:1px solid #2a3550; border-radius:10px; padding:0.85rem; }
-  .save-btn { background:#22c55e; color:white; border:none; padding:0.4rem 1rem; border-radius:6px; cursor:pointer; }
-  .badge { font-size:0.75rem; padding:2px 8px; border-radius:12px; }
-  .badge.correct { background:#22c55e22; color:#22c55e; }
+  .admin-grid, .og-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(290px,1fr)); gap:1rem; }
+  .match-card { background:#111827; border:1px solid #2a3550; padding:12px; border-radius:10px; }
+  .save-btn { background:#22c55e; color:white; border:none; padding:6px 14px; border-radius:6px; cursor:pointer; }
+  .badge { font-size:0.75rem; padding:2px 8px; border-radius:999px; background:#22c55e22; color:#22c55e; }
 </style>
 </head>
 <body>
