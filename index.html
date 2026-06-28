@@ -456,55 +456,107 @@
     </div>`;
   }
 
-  function renderOGPlayerEntry(player, name, colorClass, round, idx, pred, actual, points){
+  function renderOGPlayerEntry(player, name, colorClass, round, idx, pred, actual, pointsObj) {
     const played = actual.played;
-    let badges = "";
-    if(played && points !== null){
-      badges = `<span class="pts-badge ${points>0?'pos':points<0?'neg':''}">${points>=0?'+':''}${points} pts</span>`;
+  
+    let breakdownHTML = "";
+    if (played && pointsObj && pointsObj.total > 0) {
+      const parts = [];
+      if (pointsObj.qualify > 0) parts.push(`+${pointsObj.qualify}Q`);
+      if (pointsObj.matchup > 0) parts.push(`+${pointsObj.matchup}M`);
+      if (pointsObj.score > 0) parts.push(`+${pointsObj.score}S`);
+      if (pointsObj.winner > 0) parts.push(`+${pointsObj.winner}W`);
+  
+      breakdownHTML = `<span class="pts-badge pos" style="margin-left:6px; font-size:0.7rem;">${parts.join(" ")}</span>`;
     }
-    return `<div class="og-player-entry">
-      <div class="og-player-header">
-        <span class="${colorClass} bold">${name}</span>${badges}
+  
+    const possibleTeams = getAvailableTeamsForMatch(round, idx);
+  
+    return `
+      <div class="og-player-entry">
+        <div class="og-player-header">
+          <span class="${colorClass} bold">${name}</span>
+          ${breakdownHTML}
+        </div>
+  
+        <!-- Teams (Dropdowns) -->
+        <div class="og-fields">
+          <select class="og-input" data-player="${player}" data-round="${round}" data-idx="${idx}" data-field="team1">
+            <option value="">Team 1</option>
+            ${possibleTeams.map(t => `<option value="${t}" ${pred.team1 === t ? 'selected' : ''}>${t}</option>`).join('')}
+          </select>
+          <span class="vs-mini">vs</span>
+          <select class="og-input" data-player="${player}" data-round="${round}" data-idx="${idx}" data-field="team2">
+            <option value="">Team 2</option>
+            ${possibleTeams.map(t => `<option value="${t}" ${pred.team2 === t ? 'selected' : ''}>${t}</option>`).join('')}
+          </select>
+        </div>
+  
+        <!-- Score -->
+        <div class="og-fields">
+          <input class="og-input score-input" data-player="${player}" data-round="${round}" data-idx="${idx}" data-field="score1"
+                 type="number" placeholder="0" value="${pred.score1 ?? ''}" ${played ? 'readonly' : ''}>
+          <span class="vs-mini">–</span>
+          <input class="og-input score-input" data-player="${player}" data-round="${round}" data-idx="${idx}" data-field="score2"
+                 type="number" placeholder="0" value="${pred.score2 ?? ''}" ${played ? 'readonly' : ''}>
+        </div>
+  
+        <!-- Who Qualifies -->
+        <div class="og-fields">
+          <input class="og-input" data-player="${player}" data-round="${round}" data-idx="${idx}" data-field="qualifiedTeam"
+                 type="text" placeholder="Who qualifies?" value="${esc(pred.qualifiedTeam || '')}" ${played ? 'readonly' : ''}>
+        </div>
       </div>
-      <div class="og-fields">
-        <input class="og-input" data-player="${player}" data-round="${round}" data-idx="${idx}" data-field="team1"
-          type="text" placeholder="Team 1" value="${esc(pred.team1||'')}" ${played?'readonly':''} />
-        <span class="vs-mini">vs</span>
-        <input class="og-input" data-player="${player}" data-round="${round}" data-idx="${idx}" data-field="team2"
-          type="text" placeholder="Team 2" value="${esc(pred.team2||'')}" ${played?'readonly':''} />
-      </div>
-      <div class="og-fields">
-        <input class="og-input score-input" data-player="${player}" data-round="${round}" data-idx="${idx}" data-field="score1"
-          type="number" min="0" placeholder="0" value="${pred.score1!==undefined?pred.score1:''}" ${played?'readonly':''} />
-        <span class="vs-mini">–</span>
-        <input class="og-input score-input" data-player="${player}" data-round="${round}" data-idx="${idx}" data-field="score2"
-          type="number" min="0" placeholder="0" value="${pred.score2!==undefined?pred.score2:''}" ${played?'readonly':''} />
-      </div>
-      <div class="og-fields">
-        <input class="og-input" data-player="${player}" data-round="${round}" data-idx="${idx}" data-field="qualifiedTeam"
-          type="text" placeholder="Who qualifies?" value="${esc(pred.qualifiedTeam||'')}" ${played?'readonly':''} />
-      </div>
-    </div>`;
+    `;
   }
 
-  function calcOGMatchPoints(player, round, idx){
-    let pts = 0;
+  function calcOGMatchPoints(player, round, idx) {
     const actual = state.matches?.[round]?.[idx] || {};
-    const pred   = state.og?.[player]?.[round]?.[idx] || {};
-    if(!actual.played) return 0;
-    if(pred.qualifiedTeam && actual.winner && pred.qualifiedTeam===actual.winner) pts += OG_QUALIFY[round];
-    if(round!=="F" && pred.team1 && pred.team2 && actual.team1 && actual.team2){
+    const pred = state.og?.[player]?.[round]?.[idx] || {};
+    if (!actual.played) return { total: 0, qualify: 0, matchup: 0, score: 0, winner: 0 };
+  
+    let qualify = 0;
+    let matchup = 0;
+    let score = 0;
+    let winnerBonus = 0;
+  
+    const qualifyPts = OG_QUALIFY[round] || 0;
+    const matchupPts = OG_MATCHUP[round] || 0;
+    const scorePts = OG_SCORE[round] || 0;
+  
+    // Correct Qualified Team
+    if (pred.qualifiedTeam && actual.winner && pred.qualifiedTeam === actual.winner) {
+      qualify = qualifyPts;
+    }
+  
+    // Correct Matchup (both teams)
+    if (round !== "F" && pred.team1 && pred.team2 && actual.team1 && actual.team2) {
       const pSet = new Set([pred.team1, pred.team2]);
-      if([actual.team1, actual.team2].every(t => pSet.has(t))) pts += OG_MATCHUP[round];
+      const aSet = new Set([actual.team1, actual.team2]);
+      if ([...pSet].every(t => aSet.has(t))) {
+        matchup = matchupPts;
+      }
     }
-    if(pred.score1!==undefined && pred.score2!==undefined && actual.score1!==undefined && actual.score2!==undefined){
-      if(String(pred.score1)===String(actual.score1) && String(pred.score2)===String(actual.score2)) pts += OG_SCORE[round];
+  
+    // Correct Score
+    if (pred.score1 !== undefined && pred.score2 !== undefined &&
+        actual.score1 !== undefined && actual.score2 !== undefined) {
+      if (String(pred.score1) === String(actual.score1) && String(pred.score2) === String(actual.score2)) {
+        score = scorePts;
+      }
     }
-    if(round==="F"){
-      const ogPlayer = state.og?.[player];
-      if(ogPlayer?.winner && actual.winner && ogPlayer.winner===actual.winner) pts += OG_WINNER;
+  
+    // Final Winner Bonus
+    if (round === "F") {
+      const ogWinner = state.og?.[player]?.winner;
+      if (ogWinner && actual.winner && ogWinner === actual.winner) {
+        winnerBonus = OG_WINNER;
+      }
     }
-    return pts;
+  
+    const total = qualify + matchup + score + winnerBonus;
+  
+    return { total, qualify, matchup, score, winner: winnerBonus };
   }
 
   function bindOGInputs(){
