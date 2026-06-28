@@ -664,13 +664,12 @@
     `;
   }
 
+
   function renderPlayerInputsFree(player, round, idx, pred, possibleTeams) {
     const score1 = pred.score1 ?? '';
     const score2 = pred.score2 ?? '';
     const isTie = score1 !== '' && score2 !== '' && Number(score1) === Number(score2);
-    
   
-    // Team dropdowns
     const team1Options = possibleTeams.map(t => 
       `<option value="${t}" ${pred.team1 === t ? 'selected' : ''}>${t}</option>`
     ).join('');
@@ -679,12 +678,40 @@
       `<option value="${t}" ${pred.team2 === t ? 'selected' : ''}>${t}</option>`
     ).join('');
   
-    // Only show "Who qualifies?" if scores are tied
+    // ==================== POINT BADGE LOGIC ====================
+    let pointBadge = '';
+    const actual = state.matches?.[round]?.[idx] || {};
+  
+    if (actual.played && actual.team1 && actual.team2) {
+      let points = 0;
+      const predictedTeamsMatch = 
+        (pred.team1 === actual.team1 && pred.team2 === actual.team2) ||
+        (pred.team1 === actual.team2 && pred.team2 === actual.team1);
+  
+      // +5 for correct advancing team (only if teams were correctly predicted)
+      if (predictedTeamsMatch && pred.qualifiedTeam && pred.qualifiedTeam === actual.winner) {
+        points += NEW_PROGRESS; // +5
+      }
+  
+      // +10 for correct score (only if teams were correctly predicted)
+      if (predictedTeamsMatch &&
+          pred.score1 !== undefined && pred.score2 !== undefined &&
+          actual.score1 === pred.score1 && actual.score2 === pred.score2) {
+        points += NEW_SCORE; // +10
+      }
+  
+      if (points > 0) {
+        pointBadge = `<span class="pts-badge pos" style="margin-left: 6px; font-size: 0.7rem; padding: 1px 6px;">+${points}</span>`;
+      }
+    }
+  
+    // ==================== TIE HANDLING ====================
     let qualifiedHTML = '';
+  
     if (isTie) {
       qualifiedHTML = `
-        <div style="margin-top: 6px;">
-          <label style="font-size: 0.75rem; display:block; margin-bottom: 2px;">Who qualifies? (tied)</label>
+        <div style="margin-top:6px;">
+          <label style="font-size:0.75rem; display:block; margin-bottom:2px;">Who qualifies? (tied)</label>
           <select class="np-input" data-player="${player}" data-round="${round}" data-idx="${idx}" data-field="qualifiedTeam">
             <option value="">Select winner</option>
             ${possibleTeams.map(t => 
@@ -693,12 +720,11 @@
           </select>
         </div>`;
     } else if (score1 !== '' || score2 !== '') {
-      // Auto show winner if not tied
       const autoWinner = Number(score1) > Number(score2) ? pred.team1 : pred.team2;
       if (autoWinner) {
         qualifiedHTML = `
-          <div style="margin-top: 6px; font-size: 0.85rem;">
-            → <strong>${autoWinner}</strong> <span style="color:#6b7a99">(from score)</span>
+          <div style="margin-top:6px; font-size:0.85rem;">
+            → <strong>${autoWinner}</strong> <span style="color:#6b7a99">(auto from score)</span>
           </div>`;
       }
     }
@@ -718,13 +744,14 @@
           </select>
         </div>
   
-        <!-- Scores -->
-        <div class="og-fields">
+        <!-- Scores + Points -->
+        <div class="og-fields" style="align-items:center;">
           <input class="np-input score-input" data-player="${player}" data-round="${round}" data-idx="${idx}" data-field="score1"
                  type="number" placeholder="0" value="${score1}">
           <span class="vs-mini">–</span>
           <input class="np-input score-input" data-player="${player}" data-round="${round}" data-idx="${idx}" data-field="score2"
                  type="number" placeholder="0" value="${score2}">
+          ${pointBadge}
         </div>
   
         ${qualifiedHTML}
