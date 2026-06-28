@@ -864,7 +864,7 @@
     await set(ref(db, `matches/${round}/${idx}`), matchData);
     await propagateWinner(round, idx, winner);
   
-    alert(`✓ Saved: ${team1} ${score1}–${score2} ${team2} → Winner: ${winner}`);
+    // alert(`✓ Saved: ${team1} ${score1}–${score2} ${team2} → Winner: ${winner}`);
     renderAdmin();
   };
 
