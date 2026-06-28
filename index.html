@@ -587,8 +587,9 @@
           ${hasTeams ? `${team1} vs ${team2}` : "Fixture not set yet"}
         </div>
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
-          ${renderPlayerInputs("harry", round, idx, hPred, hasTeams, team1, team2)}
           ${renderPlayerInputs("garry", round, idx, gPred, hasTeams, team1, team2)}
+          ${renderPlayerInputs("harry", round, idx, hPred, hasTeams, team1, team2)}
+
         </div>
       </div>
     `;
@@ -612,13 +613,13 @@
           
           <!-- Garry (G) -->
           <div>
-            <div style="font-weight:700; color:#f5a623; margin-bottom:6px;">G</div>
+            <div style="font-weight:700; color:#f5a623; margin-bottom:6px;">Garry</div>
             ${renderPlayerInputsFree("garry", round, idx, gPred, possibleTeams)}
           </div>
   
           <!-- Harry (H) -->
           <div>
-            <div style="font-weight:700; color:#4fc3f7; margin-bottom:6px;">H</div>
+            <div style="font-weight:700; color:#4fc3f7; margin-bottom:6px;">Harry</div>
             ${renderPlayerInputsFree("harry", round, idx, hPred, possibleTeams)}
           </div>
   
