@@ -548,7 +548,7 @@
       </div>
     `;
   }
-
+  
   function renderNPEntry(player, name, colorClass, round, idx, pred, actual, points, isWager) {
     const played = actual.played;
     let badges = "";
@@ -558,12 +558,9 @@
     }
   
     if (isWager) {
-      // SF & Final remain as wager system
       return `
         <div class="og-player-entry">
-          <div class="og-player-header">
-            <span class="${colorClass} bold">${name}</span>${badges}
-          </div>
+          <div class="og-player-header"><span class="${colorClass} bold">${name}</span>${badges}</div>
           <div class="og-fields">
             <label class="field-label">Wager</label>
             <input class="np-input score-input" data-player="${player}" data-round="${round}" data-idx="${idx}" data-field="wager"
@@ -574,18 +571,20 @@
           </div>
         </div>`;
     } else {
-      // R32, R16, QF → "Who qualifies?" is now always a dropdown of the two teams playing
       const team1 = actual.team1 || "";
       const team2 = actual.team2 || "";
       const hasTeams = team1 && team2;
   
+      // Check if scores are tied
+      const score1 = pred.score1 ?? null;
+      const score2 = pred.score2 ?? null;
+      const isTie = score1 !== null && score2 !== null && score1 === score2;
+  
       return `
         <div class="og-player-entry">
-          <div class="og-player-header">
-            <span class="${colorClass} bold">${name}</span>${badges}
-          </div>
+          <div class="og-player-header"><span class="${colorClass} bold">${name}</span>${badges}</div>
   
-          <!-- Score Prediction -->
+          <!-- Score inputs -->
           <div class="og-fields">
             <input class="np-input score-input" data-player="${player}" data-round="${round}" data-idx="${idx}" data-field="score1"
                    type="number" min="0" placeholder="0" value="${pred.score1 ?? ''}" />
@@ -594,19 +593,24 @@
                    type="number" min="0" placeholder="0" value="${pred.score2 ?? ''}" />
           </div>
   
-          <!-- Who Qualifies? → Dropdown of the two teams -->
-          <div class="og-fields">
-            <label class="field-label">Who qualifies?</label>
-            ${hasTeams 
-              ? `<select class="np-input" data-player="${player}" data-round="${round}" data-idx="${idx}" data-field="qualifiedTeam">
-                   <option value="">Select team</option>
-                   <option value="${team1}" ${pred.qualifiedTeam === team1 ? 'selected' : ''}>${team1}</option>
-                   <option value="${team2}" ${pred.qualifiedTeam === team2 ? 'selected' : ''}>${team2}</option>
-                 </select>`
-              : `<input class="np-input" data-player="${player}" data-round="${round}" data-idx="${idx}" data-field="qualifiedTeam"
-                        type="text" placeholder="Teams not set in Admin yet" value="${esc(pred.qualifiedTeam || '')}" />`
-            }
-          </div>
+          <!-- Who qualifies? - Only show if scores are tied -->
+          ${hasTeams && isTie ? `
+            <div class="og-fields">
+              <label class="field-label">Who qualifies? (tied - select winner)</label>
+              <select class="np-input" data-player="${player}" data-round="${round}" data-idx="${idx}" data-field="qualifiedTeam">
+                <option value="">Select team</option>
+                <option value="${team1}" ${pred.qualifiedTeam === team1 ? 'selected' : ''}>${team1}</option>
+                <option value="${team2}" ${pred.qualifiedTeam === team2 ? 'selected' : ''}>${team2}</option>
+              </select>
+            </div>` : ''}
+  
+          ${hasTeams && !isTie && (pred.score1 !== undefined || pred.score2 !== undefined) ? `
+            <div class="og-fields">
+              <label class="field-label">Who qualifies?</label>
+              <div style="padding: 4px 8px; background: #1a2235; border-radius: 5px; font-size: 0.85rem;">
+                ${pred.score1 > pred.score2 ? team1 : team2} <span style="color:#6b7a99">(auto from score)</span>
+              </div>
+            </div>` : ''}
         </div>`;
     }
   }
@@ -631,21 +635,47 @@
     return pts;
   }
 
-  function bindNewPredInputs(){
+  function bindNewPredInputs() {
     document.querySelectorAll(".np-input").forEach(input => {
       input.addEventListener("change", async (e) => {
         const { player, round, idx, field } = e.target.dataset;
         let val = e.target.value;
   
-        if (field === "score1" || field === "score2" || field === "wager") {
+        if (["score1", "score2", "wager"].includes(field)) {
           val = val === "" ? null : Number(val);
+        }
+  
+        // Auto-set qualifiedTeam if scores are not tied
+        if (["score1", "score2"].includes(field)) {
+          const card = e.target.closest(".og-player-entry");
+          if (card) {
+            const score1El = card.querySelector('[data-field="score1"]');
+            const score2El = card.querySelector('[data-field="score2"]');
+            const qualifiedEl = card.querySelector('[data-field="qualifiedTeam"]');
+  
+            if (score1El && score2El) {
+              const s1 = parseInt(score1El.value);
+              const s2 = parseInt(score2El.value);
+  
+              if (!isNaN(s1) && !isNaN(s2) && s1 !== s2) {
+                const team1 = card.closest(".match-card")?.querySelector(".matchup-teams")?.textContent?.split(" vs ")[0]?.trim();
+                const team2 = card.closest(".match-card")?.querySelector(".matchup-teams")?.textContent?.split(" vs ")[1]?.trim();
+  
+                if (team1 && team2) {
+                  const autoWinner = s1 > s2 ? team1 : team2;
+                  // Update in Firebase
+                  await set(ref(db, `newpred/${player}/${round}/${idx}/qualifiedTeam`), autoWinner);
+                }
+              }
+            }
+          }
         }
   
         await set(ref(db, `newpred/${player}/${round}/${idx}/${field}`), val);
       });
     });
   }
-  
+    
 
   // ── Admin tab ─────────────────────────────────────────────────────────────
   // function renderAdmin(){
