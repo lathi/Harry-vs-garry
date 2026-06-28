@@ -630,36 +630,37 @@
     `;
   }
 
-
   function renderPlayerInputs(player, round, idx, pred, hasTeams, team1, team2) {
     const score1 = pred.score1 ?? '';
     const score2 = pred.score2 ?? '';
     const isTie = score1 !== '' && score2 !== '' && Number(score1) === Number(score2);
   
-    // ==================== POINT BADGE LOGIC ====================
-    let pointBadge = '';
+    // Get actual result from Admin
     const actual = state.matches?.[round]?.[idx] || {};
+  
+    // ==================== POINT BADGE ====================
+    let pointBadge = '';
   
     if (actual.played) {
       let points = 0;
   
-      // For R32, teams are linked, so we can directly check
-      const predictedTeamsMatch = true; // Since R32 is tied to Admin fixtures
+      // For R32 we assume teams match (since it's linked to Admin)
+      const teamsMatch = true;
   
       // +5 for correct advancing team
-      if (predictedTeamsMatch && pred.qualifiedTeam && pred.qualifiedTeam === actual.winner) {
-        points += NEW_PROGRESS; // +5
+      if (teamsMatch && pred.qualifiedTeam && pred.qualifiedTeam === actual.winner) {
+        points += NEW_PROGRESS;
       }
   
       // +10 for correct score
-      if (predictedTeamsMatch &&
+      if (teamsMatch &&
           pred.score1 !== undefined && pred.score2 !== undefined &&
           actual.score1 === pred.score1 && actual.score2 === pred.score2) {
-        points += NEW_SCORE; // +10
+        points += NEW_SCORE;
       }
   
       if (points > 0) {
-        pointBadge = `<span class="pts-badge pos" style="margin-left:8px; padding:2px 7px; font-size:0.7rem;">+${points}</span>`;
+        pointBadge = `<span class="pts-badge pos" style="margin-left: 8px; padding: 2px 8px; font-size: 0.7rem;">+${points}</span>`;
       }
     }
   
@@ -668,8 +669,8 @@
   
     if (isTie) {
       qualifiedHTML = `
-        <div style="margin-top:6px;">
-          <label style="font-size:0.75rem; display:block; margin-bottom:2px;">Who qualifies? (tied)</label>
+        <div style="margin-top: 6px;">
+          <label style="font-size: 0.75rem; display: block; margin-bottom: 2px;">Who qualifies? (tied)</label>
           <select class="np-input" data-player="${player}" data-round="${round}" data-idx="${idx}" data-field="qualifiedTeam">
             <option value="">Select winner</option>
             <option value="${team1}" ${pred.qualifiedTeam === team1 ? 'selected' : ''}>${team1}</option>
@@ -681,7 +682,7 @@
       if (autoWinner) {
         qualifiedHTML = `
           <div style="margin-top:6px; font-size:0.85rem;">
-            → <strong>${autoWinner}</strong> <span style="color:#6b7a99">(auto from score)</span>
+            → <strong>${autoWinner}</strong> <span style="color:#6b7a99">(auto)</span>
           </div>`;
       }
     }
@@ -689,8 +690,8 @@
     return `
       <div>
         <div style="font-weight:600; color:${player === 'harry' ? '#4fc3f7' : '#f5a623'}; margin-bottom:4px;">${player}</div>
-        
-        <div class="og-fields">
+  
+        <div class="og-fields" style="align-items: center;">
           <input class="np-input score-input" data-player="${player}" data-round="${round}" data-idx="${idx}" data-field="score1"
                  type="number" placeholder="0" value="${score1}">
           <span class="vs-mini">–</span>
