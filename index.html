@@ -604,7 +604,8 @@
   
     // Get possible teams for dropdown (from previous round or R32)
     // const possibleTeams = getAvailableTeamsForMatch(round, idx);
-    const possibleTeams = getTeamsForPredictedRound(round, player);
+    const possibleTeams_G = getTeamsForPredictedRound(round, "garry");
+    const possibleTeams_H = getTeamsForPredictedRound(round, "harry");
   
     return `
       <div class="match-card" data-round="${round}" data-idx="${idx}">
@@ -615,13 +616,13 @@
           <!-- Garry (G) -->
           <div>
             <div style="font-weight:700; color:#f5a623; margin-bottom:6px;">Garry</div>
-            ${renderPlayerInputsFree("garry", round, idx, gPred, possibleTeams)}
+            ${renderPlayerInputsFree("garry", round, idx, gPred, possibleTeams_G)}
           </div>
   
           <!-- Harry (H) -->
           <div>
             <div style="font-weight:700; color:#4fc3f7; margin-bottom:6px;">Harry</div>
-            ${renderPlayerInputsFree("harry", round, idx, hPred, possibleTeams)}
+            ${renderPlayerInputsFree("harry", round, idx, hPred, possibleTeams_H)}
           </div>
   
         </div>
@@ -667,6 +668,7 @@
     const score1 = pred.score1 ?? '';
     const score2 = pred.score2 ?? '';
     const isTie = score1 !== '' && score2 !== '' && Number(score1) === Number(score2);
+    
   
     // Team dropdowns
     const team1Options = possibleTeams.map(t => 
