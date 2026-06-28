@@ -11,19 +11,32 @@
   import { getDatabase, ref, onValue, set, get } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
   // ─── PASTE YOUR FIREBASE CONFIG HERE ───────────────────────────────────────
-  const firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "YOUR_PROJECT.firebaseapp.com",
-    databaseURL: "https://YOUR_PROJECT-default-rtdb.firebaseio.com",
-    projectId: "YOUR_PROJECT",
-    storageBucket: "YOUR_PROJECT.appspot.com",
-    messagingSenderId: "YOUR_SENDER_ID",
-    appId: "YOUR_APP_ID"
-  };
+  // const firebaseConfig = {
+  //   apiKey: "YOUR_API_KEY",
+  //   authDomain: "YOUR_PROJECT.firebaseapp.com",
+  //   databaseURL: "https://YOUR_PROJECT-default-rtdb.firebaseio.com",
+  //   projectId: "YOUR_PROJECT",
+  //   storageBucket: "YOUR_PROJECT.appspot.com",
+  //   messagingSenderId: "YOUR_SENDER_ID",
+  //   appId: "YOUR_APP_ID"
+  // };
   // ───────────────────────────────────────────────────────────────────────────
 
-  const app = initializeApp(firebaseConfig);
-  const db  = getDatabase(app);
+  const firebaseConfig = {
+    apiKey: "AIzaSyDCAV-T_P1CkCzAg7g6VC991rFI-hBxUF0",
+    authDomain: "garryvsharry.firebaseapp.com",
+    projectId: "garryvsharry",
+    storageBucket: "garryvsharry.firebasestorage.app",
+    messagingSenderId: "736527270681",
+    appId: "1:736527270681:web:d8a0a2731c59f7a071bb88",
+    measurementId: "G-ZGXCS3202B"
+};
+
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
+
+  // const app = initializeApp(firebaseConfig);
+  // const db  = getDatabase(app);
 
   // ── Round structure ────────────────────────────────────────────────────────
   // R32 = Round of 32 (16 matches), R16 = Round of 16 (8 matches),
