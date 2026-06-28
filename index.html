@@ -434,7 +434,8 @@
       </div>
     </div>`;
   }
-
+  
+  
   function renderOGPlayerEntry(player, name, colorClass, round, idx, pred, actual, pointsObj) {
     const played = actual.played;
   
@@ -449,7 +450,41 @@
       breakdownHTML = `<span class="pts-badge pos" style="margin-left:6px; font-size:0.7rem;">${parts.join(" ")}</span>`;
     }
   
+    const score1 = pred.score1 ?? '';
+    const score2 = pred.score2 ?? '';
+    const isTie = score1 !== '' && score2 !== '' && Number(score1) === Number(score2);
+  
     const possibleTeams = getAvailableTeamsForMatch(round, idx);
+  
+    // Who Qualifies logic
+    let qualifiedHTML = '';
+  
+    if (isTie) {
+      // Show dropdown only when tied
+      qualifiedHTML = `
+        <div class="og-fields">
+          <label class="field-label" style="font-size:0.75rem">Who qualifies? (tied)</label>
+          <select class="og-input" data-player="${player}" data-round="${round}" data-idx="${idx}" data-field="qualifiedTeam">
+            <option value="">Select winner</option>
+            ${possibleTeams.map(t => 
+              `<option value="${t}" ${pred.qualifiedTeam === t ? 'selected' : ''}>${t}</option>`
+            ).join('')}
+          </select>
+        </div>`;
+    } else if (score1 !== '' || score2 !== '') {
+      // Auto calculate winner
+      const autoWinner = Number(score1) > Number(score2) ? pred.team1 : pred.team2;
+      if (autoWinner) {
+        qualifiedHTML = `
+          <div class="og-fields">
+            <label class="field-label" style="font-size:0.75rem">Who qualifies?</label>
+            <div style="padding: 5px 10px; background: #1a2235; border-radius: 6px; font-size: 0.85rem;">
+              <strong>${autoWinner}</strong> 
+              <span style="color:#6b7a99; font-size:0.75rem;">(auto from score)</span>
+            </div>
+          </div>`;
+      }
+    }
   
     return `
       <div class="og-player-entry">
@@ -481,10 +516,7 @@
         </div>
   
         <!-- Who Qualifies -->
-        <div class="og-fields">
-          <input class="og-input" data-player="${player}" data-round="${round}" data-idx="${idx}" data-field="qualifiedTeam"
-                 type="text" placeholder="Who qualifies?" value="${esc(pred.qualifiedTeam || '')}" ${played ? 'readonly' : ''}>
-        </div>
+        ${qualifiedHTML}
       </div>
     `;
   }
@@ -538,12 +570,44 @@
     return { total, qualify, matchup, score, winner: winnerBonus };
   }
 
-  function bindOGInputs(){
+  function bindOGInputs() {
     document.querySelectorAll(".og-input").forEach(input => {
-      input.addEventListener("change", async e => {
+      input.addEventListener("change", async (e) => {
         const { player, round, idx, field } = e.target.dataset;
-        const val = e.target.value;
-        await dbSet(`/og/${player}/${round}/${idx}/${field}`, field.includes("score") ? (val===""?null:Number(val)) : val);
+        let val = e.target.value;
+  
+        if (["score1", "score2"].includes(field)) {
+          val = val === "" ? null : Number(val);
+        }
+  
+        // Auto-set qualifiedTeam when scores are not tied
+        if (["score1", "score2"].includes(field)) {
+          setTimeout(async () => {
+            const card = e.target.closest(".og-player-entry");
+            if (!card) return;
+  
+            const s1El = card.querySelector('[data-field="score1"]');
+            const s2El = card.querySelector('[data-field="score2"]');
+  
+            if (s1El && s2El) {
+              const s1 = parseInt(s1El.value);
+              const s2 = parseInt(s2El.value);
+  
+              if (!isNaN(s1) && !isNaN(s2) && s1 !== s2) {
+                const team1 = card.querySelector('[data-field="team1"]')?.value;
+                const team2 = card.querySelector('[data-field="team2"]')?.value;
+  
+                if (team1 && team2) {
+                  const autoWinner = s1 > s2 ? team1 : team2;
+                  await set(ref(db, `og/${player}/${round}/${idx}/qualifiedTeam`), autoWinner);
+                }
+              }
+            }
+          }, 50);
+        }
+  
+        await set(ref(db, `og/${player}/${round}/${idx}/${field}`), 
+          ["score1", "score2"].includes(field) ? (val === null ? null : Number(val)) : val);
       });
     });
   }
