@@ -5,22 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>⚽ WC 2026 – Harry vs Garry</title>
 
-<!-- Firebase -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-  import { getDatabase, ref, onValue, set, get } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
-
-  // ─── PASTE YOUR FIREBASE CONFIG HERE ───────────────────────────────────────
-  // const firebaseConfig = {
-  //   apiKey: "YOUR_API_KEY",
-  //   authDomain: "YOUR_PROJECT.firebaseapp.com",
-  //   databaseURL: "https://YOUR_PROJECT-default-rtdb.firebaseio.com",
-  //   projectId: "YOUR_PROJECT",
-  //   storageBucket: "YOUR_PROJECT.appspot.com",
-  //   messagingSenderId: "YOUR_SENDER_ID",
-  //   appId: "YOUR_APP_ID"
-  // };
-  // ───────────────────────────────────────────────────────────────────────────
+  import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyDCAV-T_P1CkCzAg7g6VC991rFI-hBxUF0",
@@ -28,89 +15,40 @@
     projectId: "garryvsharry",
     storageBucket: "garryvsharry.firebasestorage.app",
     messagingSenderId: "736527270681",
-    appId: "1:736527270681:web:d8a0a2731c59f7a071bb88",
-    measurementId: "G-ZGXCS3202B"
-};
-
-  // firebase.initializeApp(firebaseConfig);
-  // const db = firebase.database();
+    appId: "1:736527270681:web:d8a0a2731c59f7a071bb88"
+  };
 
   const app = initializeApp(firebaseConfig);
-  const db  = getDatabase(app);
+  const db = getDatabase(app);
 
-  // ── Round structure ────────────────────────────────────────────────────────
-  // R32 = Round of 32 (16 matches), R16 = Round of 16 (8 matches),
-  // QF = Quarter Finals (4), SF = Semi Finals (2), F = Final (1)
   const ROUNDS = ["R32","R16","QF","SF","F"];
   const ROUND_LABELS = { R32:"Round of 32", R16:"Round of 16", QF:"Quarter Finals", SF:"Semi Finals", F:"Final" };
-  const MATCH_COUNT  = { R32:16, R16:8, QF:4, SF:2, F:1 };
+  const MATCH_COUNT = { R32:16, R16:8, QF:4, SF:2, F:1 };
 
-  // OG scoring tables
-  const OG_QUALIFY = { R32:10, R16:10, QF:15, SF:20, F:25 };
-  const OG_MATCHUP = { R32:10, R16:10, QF:10, SF:10, F:0  };
-  const OG_SCORE   = { R32:10, R16:10, QF:10, SF:10, F:10 };
-  const OG_WINNER  = 50; // only for Final
-
-  // New-pred scoring
-  const NEW_PROGRESS = 5;  // per team, R32/R16/QF only
-  const NEW_SCORE    = 10; // correct score R32/R16/QF
-
-  // Group stage constants
+  const NEW_PROGRESS = 5;
+  const NEW_SCORE = 10;
   const GS_GARRY = 1425;
   const GS_HARRY = 1285;
 
-  // ── Helpers ────────────────────────────────────────────────────────────────
-  function el(id){ return document.getElementById(id); }
-  function dbRef(path){ return ref(db, path); }
-
-  async function dbSet(path, val){
-    await set(dbRef(path), val);
-  }
-
-  // ── State (loaded from Firebase) ──────────────────────────────────────────
-  // Shape:
-  // /matches/{round}/{matchIdx} = {
-  //   team1, team2,           // team names entered in admin
-  //   score1, score2,         // actual result
-  //   extraTime: bool,
-  //   penalties: bool,
-  //   penScore1, penScore2,   // only if penalties
-  //   played: bool,
-  //   winner: "team1"|"team2"
-  // }
-  // /og/{player}/{round}/{matchIdx} = {
-  //   team1, team2,           // predicted match-up
-  //   score1, score2,         // predicted score
-  //   qualifiedTeam: name     // predicted team to qualify FROM this match
-  // }
-  // /og/{player}/winner = teamName     ← final winner prediction
-  // /newpred/{player}/{round}/{matchIdx} = {
-  //   score1, score2,         // predicted score (R32/R16/QF)
-  //   wager: number,          // SF/F only
-  //   predictedWinner: name   // SF/F only
-  // }
-  // /bracket/{round}/{matchIdx} = {team1, team2}   ← derived from results, who made it to each slot
-
   let state = { matches:{}, og:{}, newpred:{}, bracket:{} };
 
-  // ── Boot ──────────────────────────────────────────────────────────────────
+  function el(id){ return document.getElementById(id); }
+
   window.addEventListener("DOMContentLoaded", () => {
     buildUI();
     listenDB();
   });
 
   function listenDB(){
-    onValue(dbRef("/"), snap => {
+    onValue(ref(db, "/"), snap => {
       state = snap.val() || { matches:{}, og:{}, newpred:{}, bracket:{} };
-      state.matches  = state.matches  || {};
-      state.og       = state.og       || {};
-      state.newpred  = state.newpred  || {};
-      state.bracket  = state.bracket  || {};
+      state.matches = state.matches || {};
+      state.og = state.og || {};
+      state.newpred = state.newpred || {};
       renderAll();
     });
   }
 
-  // ── Build static shell ────────────────────────────────────────────────────
   function buildUI(){
     const root = el("root");
     root.innerHTML = `
@@ -121,48 +59,36 @@
         </div>
         <div id="leaderboard" class="leaderboard"></div>
       </header>
+
       <nav class="tabs">
         <button class="tab active" data-tab="og">🎯 OG Predictions</button>
         <button class="tab" data-tab="newpred">🔮 New Predictions</button>
         <button class="tab" data-tab="admin">📋 Results Admin</button>
         <button class="tab" data-tab="group">📊 Group Stage</button>
       </nav>
+
       <main>
-        <div id="tab-og"      class="tab-panel active"></div>
+        <div id="tab-og" class="tab-panel active"></div>
         <div id="tab-newpred" class="tab-panel"></div>
-        <div id="tab-admin"   class="tab-panel">
-        <div class="section-header">
-        <h2>📋 Results Admin</h2>
-        <p>Enter actual match results. Teams come from the bracket. If scores are tied, select the winner.</p> </div>
-        <div id="admin-container">
+        <div id="tab-admin" class="tab-panel">
+          <div class="section-header">
+            <h2>📋 Results Admin</h2>
+            <p>Enter fixtures first, then results. Use "Save Fixtures" to pre-load teams for New Predictions.</p>
+          </div>
+          <div id="admin-container"></div>
         </div>
-        </div>
-        <div id="tab-group"   class="tab-panel">
+        <div id="tab-group" class="tab-panel">
           <div class="card group-stage-card">
             <h2>Group Stage Scores</h2>
-            <p>The group stage has concluded. Final scores before the knockout stage:</p>
             <div class="gs-scores">
-              <div class="gs-player garry">
-                <span class="gs-name">Garry</span>
-                <span class="gs-pts">${GS_GARRY}</span>
-              </div>
-              <div class="gs-player harry">
-                <span class="gs-name">Harry</span>
-                <span class="gs-pts">${GS_HARRY}</span>
-              </div>
+              <div class="gs-player garry"><span class="gs-name">Garry</span><span class="gs-pts">${GS_GARRY}</span></div>
+              <div class="gs-player harry"><span class="gs-name">Harry</span><span class="gs-pts">${GS_HARRY}</span></div>
             </div>
-            <p class="gs-link-note">For the full group stage breakdown, visit your tracking spreadsheet:<br>
-              <a id="gs-link" href="https://lathi.github.io/Harry-vs-garry/groupstage" target="_blank" class="gs-ext-link">📎 Open Group Stage Tracker</a>
-            </p>
           </div>
         </div>
       </main>
-      <div id="modal-overlay" class="modal-overlay hidden">
-        <div id="modal" class="modal"></div>
-      </div>
     `;
 
-    // Tab switching
     document.querySelectorAll(".tab").forEach(btn => {
       btn.addEventListener("click", () => {
         document.querySelectorAll(".tab").forEach(b => b.classList.remove("active"));
@@ -171,74 +97,16 @@
         el("tab-" + btn.dataset.tab).classList.add("active");
       });
     });
-
-    // Group stage link save
-    // window.saveGsLink = async () => {
-    //   const url = el("gs-url").value.trim();
-    //   if(url){ await dbSet("/meta/gsLink", url); alert("Saved!"); }
-    // };
-
-    // Modal close
-    el("modal-overlay").addEventListener("click", e => {
-      if(e.target === el("modal-overlay")) closeModal();
-    });
   }
 
-  // ── Render everything ─────────────────────────────────────────────────────
   function renderAll(){
     renderLeaderboard();
     renderOG();
     renderNewPred();
     renderAdmin();
-    renderGsLink();
   }
 
-  function renderGsLink(){
-    const link = state.meta?.gsLink || "#";
-    el("gs-link").href = link;
-    if(link !== "#") el("gs-link").textContent = "📎 " + link;
-  }
-
-  // ── Score calculation ──────────────────────────────────────────────────────
-  function calcOGScore(player){
-    let pts = 0;
-    const og = state.og?.[player] || {};
-
-    for(const round of ROUNDS){
-      const roundMatches = state.matches?.[round] || {};
-      const ogRound = og[round] || {};
-      const count = MATCH_COUNT[round];
-
-      for(let i = 0; i < count; i++){
-        const actual = roundMatches[i] || {};
-        const pred   = ogRound[i]      || {};
-        if(!actual.played) continue;
-
-        // Qualifying team prediction
-        if(pred.qualifiedTeam && actual.winner && pred.qualifiedTeam === actual.winner){
-          pts += OG_QUALIFY[round];
-        }
-        // Match-up prediction (both teams correct in any order)
-        if(round !== "F" && pred.team1 && pred.team2 && actual.team1 && actual.team2){
-          const pSet = new Set([pred.team1, pred.team2]);
-          const aSet = new Set([actual.team1, actual.team2]);
-          if([...pSet].every(t => aSet.has(t))) pts += OG_MATCHUP[round];
-        }
-        // Score prediction
-        if(pred.score1 !== undefined && pred.score2 !== undefined && actual.score1 !== undefined && actual.score2 !== undefined){
-          if(String(pred.score1)===String(actual.score1) && String(pred.score2)===String(actual.score2)){
-            pts += OG_SCORE[round];
-          }
-        }
-        // Final winner
-        if(round === "F" && og.winner && actual.winner && og.winner === actual.winner){
-          pts += OG_WINNER;
-        }
-      }
-    }
-    return pts;
-  }
-
+  // ==================== LEADERBOARD & SCORING ====================
   function calcNewScore(player){
     let pts = 0;
     const np = state.newpred?.[player] || {};
@@ -248,39 +116,23 @@
       const npRound = np[round] || {};
       const count = MATCH_COUNT[round];
 
-      for(let i = 0; i < count; i++){
+      for(let i=0; i<count; i++){
         const actual = roundMatches[i] || {};
-        const pred   = npRound[i]      || {};
+        const pred = npRound[i] || {};
         if(!actual.played) continue;
 
         if(["R32","R16","QF"].includes(round)){
-          // +5 per team progressing (2 teams per match feed into next round)
-          // We award points for the winner advancing
-          if(actual.winner){
-            // player predicted score (we track score for these rounds)
-            // +5 for this match's winner advancing (1 team per match)
-            pts += NEW_PROGRESS; // always? No — we check if player picked the winner via qualifiedTeam
-            // Actually: "5 points for each team progressing" — since bracket propagates winners,
-            // we give +5 per correct prediction. We use pred.qualifiedTeam for new preds too.
-            // Correct: award +5 if player had qualifiedTeam correct
-          }
-          // Undo the unconditional +5 above — let's do it properly:
-          pts -= NEW_PROGRESS;
-          if(pred.qualifiedTeam && actual.winner && pred.qualifiedTeam === actual.winner){
-            pts += NEW_PROGRESS;
-          }
-          // +10 correct score (not counting penalties)
-          if(pred.score1 !== undefined && pred.score2 !== undefined && actual.score1 !== undefined && actual.score2 !== undefined){
-            if(String(pred.score1)===String(actual.score1) && String(pred.score2)===String(actual.score2)){
+          if(pred.qualifiedTeam && actual.winner && pred.qualifiedTeam === actual.winner) pts += NEW_PROGRESS;
+          if(pred.score1 !== undefined && pred.score2 !== undefined &&
+             actual.score1 !== undefined && actual.score2 !== undefined){
+            if(String(pred.score1) === String(actual.score1) && String(pred.score2) === String(actual.score2)){
               pts += NEW_SCORE;
             }
           }
         } else {
-          // SF / F — wager system
           const wager = Number(pred.wager) || 0;
           if(wager > 0 && pred.predictedWinner && actual.winner){
-            if(pred.predictedWinner === actual.winner) pts += wager;
-            else pts -= wager;
+            pts += (pred.predictedWinner === actual.winner ? wager : -wager);
           }
         }
       }
@@ -290,215 +142,70 @@
 
   function totalScore(player){
     const gs = player === "garry" ? GS_GARRY : GS_HARRY;
-    return gs + calcOGScore(player) + calcNewScore(player);
+    return gs + calcNewScore(player);
   }
 
-  // ── Leaderboard ───────────────────────────────────────────────────────────
   function renderLeaderboard(){
     const garryTotal = totalScore("garry");
     const harryTotal = totalScore("harry");
-    const garryOG    = calcOGScore("garry");
-    const harryOG    = calcOGScore("harry");
-    const garryNP    = calcNewScore("garry");
-    const harryNP    = calcNewScore("harry");
-
-    const leading = garryTotal > harryTotal ? "garry" : harryTotal > garryTotal ? "harry" : "tie";
+    const garryNP = calcNewScore("garry");
+    const harryNP = calcNewScore("harry");
 
     el("leaderboard").innerHTML = `
-      <div class="lb-card ${leading==='garry'?'leading':''}">
-        <div class="lb-crown">${leading==='garry'?'👑':''}</div>
+      <div class="lb-card">
         <div class="lb-name garry-color">Garry</div>
         <div class="lb-total">${garryTotal}</div>
-        <div class="lb-breakdown">
-          <span>Group: ${GS_GARRY}</span>
-          <span>OG KO: ${garryOG>=0?'+':''}${garryOG}</span>
-          <span>New: ${garryNP>=0?'+':''}${garryNP}</span>
-        </div>
+        <div class="lb-breakdown"><span>New: ${garryNP}</span></div>
       </div>
-      <div class="lb-vs">${leading==='tie'?'🤝':'⚔️'}</div>
-      <div class="lb-card ${leading==='harry'?'leading':''}">
-        <div class="lb-crown">${leading==='harry'?'👑':''}</div>
+      <div class="lb-vs">vs</div>
+      <div class="lb-card">
         <div class="lb-name harry-color">Harry</div>
         <div class="lb-total">${harryTotal}</div>
-        <div class="lb-breakdown">
-          <span>Group: ${GS_HARRY}</span>
-          <span>OG KO: ${harryOG>=0?'+':''}${harryOG}</span>
-          <span>New: ${harryNP>=0?'+':''}${harryNP}</span>
-        </div>
+        <div class="lb-breakdown"><span>New: ${harryNP}</span></div>
       </div>
     `;
   }
 
-  // ── OG Predictions tab ────────────────────────────────────────────────────
-  function renderOG(){
-    const panel = el("tab-og");
-    let html = `<div class="section-header"><h2>🎯 OG Predictions</h2>
-      <p>Pre-tournament predictions. Edit via the forms, scores update automatically.</p></div>`;
-
-    // Winner prediction (Final)
-    const garryWinner = state.og?.garry?.winner || "";
-    const harryWinner = state.og?.harry?.winner || "";
-    const actualWinner = getActualWinner();
-    html += `<div class="card winner-card">
-      <h3>🏆 Tournament Winner Prediction</h3>
-      <div class="winner-row">
-        <div class="winner-entry">
-          <span class="garry-color">Garry</span>
-          <input type="text" id="og-winner-garry" value="${esc(garryWinner)}" placeholder="Predicted winner…"/>
-          <button onclick="saveOGWinner('garry')">Save</button>
-          ${actualWinner ? (garryWinner===actualWinner?'<span class="badge correct">✓ +50</span>':'<span class="badge wrong">✗</span>') : ''}
-        </div>
-        <div class="winner-entry">
-          <span class="harry-color">Harry</span>
-          <input type="text" id="og-winner-harry" value="${esc(harryWinner)}" placeholder="Predicted winner…"/>
-          <button onclick="saveOGWinner('harry')">Save</button>
-          ${actualWinner ? (harryWinner===actualWinner?'<span class="badge correct">✓ +50</span>':'<span class="badge wrong">✗</span>') : ''}
-        </div>
-      </div>
-    </div>`;
-
-    for(const round of ROUNDS){
-      const count = MATCH_COUNT[round];
-      html += `<div class="round-section">
-        <h3 class="round-title">${ROUND_LABELS[round]} <span class="round-pts-info">${ogPointsInfo(round)}</span></h3>
-        <div class="og-grid">`;
-
-      for(let i = 0; i < count; i++){
-        html += renderOGMatch(round, i);
-      }
-      html += `</div></div>`;
-    }
-
-    panel.innerHTML = html;
-    bindOGInputs();
-  }
-
-  function ogPointsInfo(round){
-    const parts = [];
-    if(OG_QUALIFY[round]) parts.push(`+${OG_QUALIFY[round]} qualify`);
-    if(OG_MATCHUP[round]) parts.push(`+${OG_MATCHUP[round]} matchup`);
-    if(OG_SCORE[round])   parts.push(`+${OG_SCORE[round]} score`);
-    if(round==="F") parts.push(`+${OG_WINNER} winner`);
-    return parts.join(" · ");
-  }
-
-  function getActualWinner(){
-    const finalM = state.matches?.F?.[0];
-    return finalM?.played ? finalM.winner : null;
-  }
-
-  function renderOGMatch(round, idx){
-    const actual  = state.matches?.[round]?.[idx] || {};
-    const gOG     = state.og?.garry?.[round]?.[idx] || {};
-    const hOG     = state.og?.harry?.[round]?.[idx] || {};
-    const played  = actual.played;
-
-    const gPoints = played ? calcOGMatchPoints("garry", round, idx) : null;
-    const hPoints = played ? calcOGMatchPoints("harry", round, idx) : null;
-
-    return `<div class="match-card og-match" data-round="${round}" data-idx="${idx}">
-      <div class="match-id">${ROUND_LABELS[round]} · Match ${idx+1}</div>
-      ${played ? `<div class="actual-result">
-        <strong>${esc(actual.team1)} ${actual.score1}–${actual.score2} ${esc(actual.team2)}</strong>
-        ${actual.extraTime?'<span class="badge et">AET</span>':''}
-        ${actual.penalties?`<span class="badge pen">Pens ${actual.penScore1}-${actual.penScore2}</span>`:''}
-        <span class="winner-tag">→ ${esc(actual.winner)}</span>
-      </div>` : `<div class="actual-result pending">⏳ Not played yet</div>`}
-      <div class="og-players">
-        ${renderOGPlayerEntry("garry","Garry","garry-color", round, idx, gOG, actual, gPoints)}
-        ${renderOGPlayerEntry("harry","Harry","harry-color", round, idx, hOG, actual, hPoints)}
-      </div>
-    </div>`;
-  }
-
-  function renderOGPlayerEntry(player, name, colorClass, round, idx, pred, actual, points){
-    const played = actual.played;
-    let badges = "";
-    if(played && points !== null){
-      badges = `<span class="pts-badge ${points>0?'pos':points<0?'neg':''}">${points>=0?'+':''}${points} pts</span>`;
-    }
-    return `<div class="og-player-entry">
-      <div class="og-player-header">
-        <span class="${colorClass} bold">${name}</span>${badges}
-      </div>
-      <div class="og-fields">
-        <input class="og-input" data-player="${player}" data-round="${round}" data-idx="${idx}" data-field="team1"
-          type="text" placeholder="Team 1" value="${esc(pred.team1||'')}" ${played?'readonly':''} />
-        <span class="vs-mini">vs</span>
-        <input class="og-input" data-player="${player}" data-round="${round}" data-idx="${idx}" data-field="team2"
-          type="text" placeholder="Team 2" value="${esc(pred.team2||'')}" ${played?'readonly':''} />
-      </div>
-      <div class="og-fields">
-        <input class="og-input score-input" data-player="${player}" data-round="${round}" data-idx="${idx}" data-field="score1"
-          type="number" min="0" placeholder="0" value="${pred.score1!==undefined?pred.score1:''}" ${played?'readonly':''} />
-        <span class="vs-mini">–</span>
-        <input class="og-input score-input" data-player="${player}" data-round="${round}" data-idx="${idx}" data-field="score2"
-          type="number" min="0" placeholder="0" value="${pred.score2!==undefined?pred.score2:''}" ${played?'readonly':''} />
-      </div>
-      <div class="og-fields">
-        <input class="og-input" data-player="${player}" data-round="${round}" data-idx="${idx}" data-field="qualifiedTeam"
-          type="text" placeholder="Who qualifies?" value="${esc(pred.qualifiedTeam||'')}" ${played?'readonly':''} />
-      </div>
-    </div>`;
-  }
-
-  function calcOGMatchPoints(player, round, idx){
-    let pts = 0;
-    const actual = state.matches?.[round]?.[idx] || {};
-    const pred   = state.og?.[player]?.[round]?.[idx] || {};
-    if(!actual.played) return 0;
-    if(pred.qualifiedTeam && actual.winner && pred.qualifiedTeam===actual.winner) pts += OG_QUALIFY[round];
-    if(round!=="F" && pred.team1 && pred.team2 && actual.team1 && actual.team2){
-      const pSet = new Set([pred.team1, pred.team2]);
-      if([actual.team1, actual.team2].every(t => pSet.has(t))) pts += OG_MATCHUP[round];
-    }
-    if(pred.score1!==undefined && pred.score2!==undefined && actual.score1!==undefined && actual.score2!==undefined){
-      if(String(pred.score1)===String(actual.score1) && String(pred.score2)===String(actual.score2)) pts += OG_SCORE[round];
-    }
-    if(round==="F"){
-      const ogPlayer = state.og?.[player];
-      if(ogPlayer?.winner && actual.winner && ogPlayer.winner===actual.winner) pts += OG_WINNER;
-    }
-    return pts;
-  }
-
-  function bindOGInputs(){
-    document.querySelectorAll(".og-input").forEach(input => {
-      input.addEventListener("change", async e => {
-        const { player, round, idx, field } = e.target.dataset;
-        const val = e.target.value;
-        await dbSet(`/og/${player}/${round}/${idx}/${field}`, field.includes("score") ? (val===""?null:Number(val)) : val);
-      });
-    });
-  }
-
-  window.saveOGWinner = async (player) => {
-    const val = el(`og-winner-${player}`).value.trim();
-    await dbSet(`/og/${player}/winner`, val);
-  };
-
-  // ── New Predictions tab ───────────────────────────────────────────────────
+  // ==================== NEW PREDICTIONS TAB ====================
   function renderNewPred(){
     const panel = el("tab-newpred");
     let html = `<div class="section-header"><h2>🔮 New Predictions</h2>
-      <p>Knockout stage live predictions. R32/R16/QF: score + qualifying team. SF/F: wager system.</p></div>`;
+      <p>Primary scoring: +5 per correct advancing team. Bonus: +10 for correct score.</p></div>`;
 
     for(const round of ROUNDS){
       const count = MATCH_COUNT[round];
       const isWager = ["SF","F"].includes(round);
       html += `<div class="round-section">
-        <h3 class="round-title">${ROUND_LABELS[round]}
-          <span class="round-pts-info">${isWager ? "Wager points on winner" : `+${NEW_PROGRESS} qualify · +${NEW_SCORE} correct score`}</span>
-        </h3>
+        <h3 class="round-title">${ROUND_LABELS[round]}</h3>
         <div class="og-grid">`;
-      for(let i=0; i<count; i++){
+      for(let i = 0; i < count; i++){
         html += renderNewPredMatch(round, i, isWager);
       }
       html += `</div></div>`;
     }
 
+    // Phase 1: Predicted Advancing Teams
+    html += `
+      <div class="round-section">
+        <h3 class="round-title">My Predicted Advancing Teams <span class="round-pts-info">Primary: +5 per correct team</span></h3>
+        
+        <div class="card">
+          <h4>Teams I predict will reach Round of 16</h4>
+          <div id="newpred-r16-advancing-teams"></div>
+          <button onclick="savePredictedAdvancingTeams('R16')" class="save-btn" style="margin-top:0.5rem; background:#6366f1">Save R16 Predictions</button>
+        </div>
+
+        <div class="card" style="margin-top:1rem;">
+          <h4>Teams I predict will reach Quarter Finals</h4>
+          <div id="newpred-qf-advancing-teams"></div>
+          <button onclick="savePredictedAdvancingTeams('QF')" class="save-btn" style="margin-top:0.5rem; background:#6366f1">Save QF Predictions</button>
+        </div>
+      </div>
+    `;
+
     panel.innerHTML = html;
     bindNewPredInputs();
+    setTimeout(renderPredictedAdvancingTeams, 100);
   }
 
   function renderNewPredMatch(round, idx, isWager){
@@ -506,111 +213,59 @@
     const gNP = state.newpred?.garry?.[round]?.[idx] || {};
     const hNP = state.newpred?.harry?.[round]?.[idx] || {};
     const played = actual.played;
-  
-    const gPoints = played ? calcNPMatchPoints("garry", round, idx) : null;
-    const hPoints = played ? calcNPMatchPoints("harry", round, idx) : null;
-  
+
     return `
       <div class="match-card og-match" data-round="${round}" data-idx="${idx}">
         <div class="match-id">${ROUND_LABELS[round]} · Match ${idx + 1}</div>
-  
-        ${actual.team1 
-          ? `<div class="actual-result">
-               <span class="matchup-teams">${esc(actual.team1)} vs ${esc(actual.team2)}</span>
-               ${played 
-                 ? `<strong>${actual.score1}–${actual.score2} → ${esc(actual.winner)}</strong>` 
-                 : `<span class="pending">⏳ Awaiting result</span>`}
-             </div>` 
-          : `<div class="actual-result pending">🔒 Teams will appear after R32 results</div>`}
-  
+        ${actual.team1 ? `
+          <div class="actual-result">
+            <span>${actual.team1} vs ${actual.team2}</span>
+            ${played ? `<strong>${actual.score1}–${actual.score2} → ${actual.winner}</strong>` : `<span class="pending">⏳</span>`}
+          </div>` : `<div class="actual-result pending">Teams not set yet</div>`}
+
         <div class="og-players">
-          ${renderNPEntry("garry", "Garry", "garry-color", round, idx, gNP, actual, gPoints, isWager)}
-          ${renderNPEntry("harry", "Harry", "harry-color", round, idx, hNP, actual, hPoints, isWager)}
+          ${renderNPEntry("garry", "Garry", "garry-color", round, idx, gNP, actual, isWager)}
+          ${renderNPEntry("harry", "Harry", "harry-color", round, idx, hNP, actual, isWager)}
         </div>
       </div>
     `;
   }
 
-  function renderNPEntry(player, name, colorClass, round, idx, pred, actual, points, isWager) {
-    const played = actual.played;
-    let badges = "";
-  
-    if (played && points !== null) {
-      badges = `<span class="pts-badge ${points > 0 ? 'pos' : points < 0 ? 'neg' : ''}">${points >= 0 ? '+' : ''}${points} pts</span>`;
-    }
-  
-    if (isWager) {
-      // SF & Final remain as wager system
-      return `
-        <div class="og-player-entry">
-          <div class="og-player-header">
-            <span class="${colorClass} bold">${name}</span>${badges}
-          </div>
-          <div class="og-fields">
-            <label class="field-label">Wager</label>
-            <input class="np-input score-input" data-player="${player}" data-round="${round}" data-idx="${idx}" data-field="wager"
-                   type="number" min="0" placeholder="pts" value="${pred.wager ?? ''}" />
-            <label class="field-label">Pick winner</label>
-            <input class="np-input" data-player="${player}" data-round="${round}" data-idx="${idx}" data-field="predictedWinner"
-                   type="text" placeholder="Winner" value="${esc(pred.predictedWinner || '')}" />
-          </div>
-        </div>`;
-    } else {
-      // R32, R16, QF → "Who qualifies?" is now always a dropdown of the two teams playing
-      const team1 = actual.team1 || "";
-      const team2 = actual.team2 || "";
-      const hasTeams = team1 && team2;
-  
-      return `
-        <div class="og-player-entry">
-          <div class="og-player-header">
-            <span class="${colorClass} bold">${name}</span>${badges}
-          </div>
-  
-          <!-- Score Prediction -->
-          <div class="og-fields">
-            <input class="np-input score-input" data-player="${player}" data-round="${round}" data-idx="${idx}" data-field="score1"
-                   type="number" min="0" placeholder="0" value="${pred.score1 ?? ''}" />
-            <span class="vs-mini">–</span>
-            <input class="np-input score-input" data-player="${player}" data-round="${round}" data-idx="${idx}" data-field="score2"
-                   type="number" min="0" placeholder="0" value="${pred.score2 ?? ''}" />
-          </div>
-  
-          <!-- Who Qualifies? → Dropdown of the two teams -->
-          <div class="og-fields">
-            <label class="field-label">Who qualifies?</label>
-            ${hasTeams 
-              ? `<select class="np-input" data-player="${player}" data-round="${round}" data-idx="${idx}" data-field="qualifiedTeam">
-                   <option value="">Select team</option>
-                   <option value="${team1}" ${pred.qualifiedTeam === team1 ? 'selected' : ''}>${team1}</option>
-                   <option value="${team2}" ${pred.qualifiedTeam === team2 ? 'selected' : ''}>${team2}</option>
-                 </select>`
-              : `<input class="np-input" data-player="${player}" data-round="${round}" data-idx="${idx}" data-field="qualifiedTeam"
-                        type="text" placeholder="Teams not set in Admin yet" value="${esc(pred.qualifiedTeam || '')}" />`
-            }
-          </div>
-        </div>`;
-    }
-  }
+  function renderNPEntry(player, name, colorClass, round, idx, pred, actual, isWager){
+    const team1 = actual.team1 || "";
+    const team2 = actual.team2 || "";
+    const hasTeams = team1 && team2;
 
-  function calcNPMatchPoints(player, round, idx){
-    let pts = 0;
-    const actual = state.matches?.[round]?.[idx] || {};
-    const pred   = state.newpred?.[player]?.[round]?.[idx] || {};
-    if(!actual.played) return 0;
-
-    if(["R32","R16","QF"].includes(round)){
-      if(pred.qualifiedTeam && actual.winner && pred.qualifiedTeam===actual.winner) pts += NEW_PROGRESS;
-      if(pred.score1!==undefined && pred.score2!==undefined && actual.score1!==undefined && actual.score2!==undefined){
-        if(String(pred.score1)===String(actual.score1) && String(pred.score2)===String(actual.score2)) pts += NEW_SCORE;
-      }
-    } else {
-      const wager = Number(pred.wager)||0;
-      if(wager>0 && pred.predictedWinner && actual.winner){
-        pts += (pred.predictedWinner===actual.winner ? wager : -wager);
-      }
+    if(isWager){
+      return `<div class="og-player-entry">
+        <div class="og-player-header"><span class="${colorClass} bold">${name}</span></div>
+        <div class="og-fields">
+          <input class="np-input score-input" data-player="${player}" data-round="${round}" data-idx="${idx}" data-field="wager" type="number" placeholder="Wager" value="${pred.wager ?? ''}">
+          <input class="np-input" data-player="${player}" data-round="${round}" data-idx="${idx}" data-field="predictedWinner" type="text" placeholder="Predicted Winner" value="${pred.predictedWinner || ''}">
+        </div>
+      </div>`;
     }
-    return pts;
+
+    return `
+      <div class="og-player-entry">
+        <div class="og-player-header"><span class="${colorClass} bold">${name}</span></div>
+        <div class="og-fields">
+          <input class="np-input score-input" data-player="${player}" data-round="${round}" data-idx="${idx}" data-field="score1" type="number" placeholder="0" value="${pred.score1 ?? ''}">
+          <span class="vs-mini">–</span>
+          <input class="np-input score-input" data-player="${player}" data-round="${round}" data-idx="${idx}" data-field="score2" type="number" placeholder="0" value="${pred.score2 ?? ''}">
+        </div>
+        <div class="og-fields">
+          <label class="field-label">Who qualifies?</label>
+          ${hasTeams 
+            ? `<select class="np-input" data-player="${player}" data-round="${round}" data-idx="${idx}" data-field="qualifiedTeam">
+                 <option value="">Select</option>
+                 <option value="${team1}" ${pred.qualifiedTeam === team1 ? 'selected' : ''}>${team1}</option>
+                 <option value="${team2}" ${pred.qualifiedTeam === team2 ? 'selected' : ''}>${team2}</option>
+               </select>`
+            : `<input class="np-input" data-player="${player}" data-round="${round}" data-idx="${idx}" data-field="qualifiedTeam" type="text" placeholder="Set fixture in Admin first" value="${pred.qualifiedTeam || ''}">`
+          }
+        </div>
+      </div>`;
   }
 
   function bindNewPredInputs(){
@@ -618,687 +273,185 @@
       input.addEventListener("change", async (e) => {
         const { player, round, idx, field } = e.target.dataset;
         let val = e.target.value;
-  
-        if (field === "score1" || field === "score2" || field === "wager") {
-          val = val === "" ? null : Number(val);
-        }
-  
+        if (["score1","score2","wager"].includes(field)) val = val === "" ? null : Number(val);
         await set(ref(db, `newpred/${player}/${round}/${idx}/${field}`), val);
       });
     });
   }
-  
 
-  // ── Admin tab ─────────────────────────────────────────────────────────────
-  // function renderAdmin(){
-  //   const panel = el("tab-admin");
-  //   let html = `<div class="section-header"><h2>📋 Results Admin</h2>
-  //     <p>Enter actual match results here. Completed matches auto-propagate winners to the next round's bracket slots.</p></div>`;
+  // ==================== PREDICTED ADVANCING TEAMS (Phase 1) ====================
+  function renderPredictedAdvancingTeams(){
+    // R16
+    const r16Container = document.getElementById("newpred-r16-advancing-teams");
+    if(r16Container){
+      const teams = getAvailableTeamsForMatch("R16", 0);
+      const saved = state.newpred?.harry?.predictedAdvancing?.R16 || [];
+      r16Container.innerHTML = createCheckboxGrid(teams, saved, "harry", "R16");
+    }
 
-  //   for(const round of ROUNDS){
-  //     const count = MATCH_COUNT[round];
-  //     html += `<div class="round-section">
-  //       <h3 class="round-title">${ROUND_LABELS[round]}</h3>
-  //       <div class="admin-grid">`;
-  //     for(let i=0; i<count; i++){
-  //       html += renderAdminMatch(round, i);
-  //     }
-  //     html += `</div></div>`;
-  //   }
+    // QF
+    const qfContainer = document.getElementById("newpred-qf-advancing-teams");
+    if(qfContainer){
+      const teams = getAvailableTeamsForMatch("QF", 0);
+      const saved = state.newpred?.harry?.predictedAdvancing?.QF || [];
+      qfContainer.innerHTML = createCheckboxGrid(teams, saved, "harry", "QF");
+    }
+  }
 
-  //   panel.innerHTML = html;
-  //   bindAdminInputs();
-  // }
-  function renderAdmin() {
+  function createCheckboxGrid(teams, selected, player, round){
+    let html = `<div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(80px,1fr)); gap:6px;">`;
+    teams.forEach(team => {
+      const checked = selected.includes(team) ? "checked" : "";
+      html += `<label style="font-size:0.85rem;"><input type="checkbox" value="${team}" ${checked} data-round="${round}"> ${team}</label>`;
+    });
+    html += `</div>`;
+    return html;
+  }
+
+  window.savePredictedAdvancingTeams = async (round) => {
+    const container = document.getElementById(round === "R16" ? "newpred-r16-advancing-teams" : "newpred-qf-advancing-teams");
+    if(!container) return;
+
+    const checked = Array.from(container.querySelectorAll("input:checked")).map(cb => cb.value);
+    const max = round === "R16" ? 8 : 4;
+    if(checked.length > max){ alert(`Maximum ${max} teams allowed.`); return; }
+
+    if(!state.newpred.harry) state.newpred.harry = {};
+    if(!state.newpred.harry.predictedAdvancing) state.newpred.harry.predictedAdvancing = {};
+
+    state.newpred.harry.predictedAdvancing[round] = checked;
+    await set(ref(db, `newpred/harry/predictedAdvancing/${round}`), checked);
+    alert(`Saved predicted teams for ${round}`);
+  };
+
+  // ==================== ADMIN TAB ====================
+  function renderAdmin(){
     const container = document.getElementById("admin-container");
-    if (!container) return;
-  
     let html = "";
-  
-    for (const round of ROUNDS) {
-      const count = MATCH_COUNT[round];
-      html += `
-        <div class="round-section">
-          <h3 class="round-title">${ROUND_LABELS[round]}</h3>
-          <div class="admin-grid">
-      `;
-  
-      for (let i = 0; i < count; i++) {
+
+    for(const round of ROUNDS){
+      html += `<div class="round-section"><h3 class="round-title">${ROUND_LABELS[round]}</h3><div class="admin-grid">`;
+      for(let i=0; i < MATCH_COUNT[round]; i++){
         html += renderCleanAdminMatch(round, i);
       }
-  
       html += `</div></div>`;
     }
-  
     container.innerHTML = html;
     bindCleanAdminInputs();
   }
 
-  // function renderAdminMatch(round, idx){
-  //   const m = state.matches?.[round]?.[idx] || {};
-  //   const played = m.played;
-  //   const pens = m.penalties;
-
-  //   return `<div class="match-card admin-match" id="admin-${round}-${idx}">
-  //     <div class="match-id">${ROUND_LABELS[round]} · Match ${idx+1}</div>
-  //     <div class="admin-fields">
-  //       <input class="admin-input" data-round="${round}" data-idx="${idx}" data-field="team1"
-  //         type="text" placeholder="Team 1" value="${esc(m.team1||'')}" />
-  //       <span class="vs-mini">vs</span>
-  //       <input class="admin-input" data-round="${round}" data-idx="${idx}" data-field="team2"
-  //         type="text" placeholder="Team 2" value="${esc(m.team2||'')}" />
-  //     </div>
-  //     <div class="admin-fields">
-  //       <input class="admin-input score-input" data-round="${round}" data-idx="${idx}" data-field="score1"
-  //         type="number" min="0" placeholder="0" value="${m.score1!==undefined?m.score1:''}"/>
-  //       <span class="vs-mini">–</span>
-  //       <input class="admin-input score-input" data-round="${round}" data-idx="${idx}" data-field="score2"
-  //         type="number" min="0" placeholder="0" value="${m.score2!==undefined?m.score2:''}"/>
-  //     </div>
-  //     <div class="admin-fields checkboxes">
-  //       <label><input type="checkbox" class="admin-check" data-round="${round}" data-idx="${idx}" data-field="extraTime" ${m.extraTime?'checked':''}/> Extra Time</label>
-  //       <label><input type="checkbox" class="admin-check" data-round="${round}" data-idx="${idx}" data-field="penalties" ${pens?'checked':''}/> Penalties</label>
-  //     </div>
-  //     ${pens ? `<div class="admin-fields pen-fields">
-  //       <span class="field-label">Pen score</span>
-  //       <input class="admin-input score-input" data-round="${round}" data-idx="${idx}" data-field="penScore1"
-  //         type="number" min="0" placeholder="0" value="${m.penScore1!==undefined?m.penScore1:''}"/>
-  //       <span class="vs-mini">–</span>
-  //       <input class="admin-input score-input" data-round="${round}" data-idx="${idx}" data-field="penScore2"
-  //         type="number" min="0" placeholder="0" value="${m.penScore2!==undefined?m.penScore2:''}"/>
-  //     </div>` : ''}
-  //     <div class="admin-fields">
-  //       <label class="field-label">Winner:</label>
-  //       <select class="admin-input admin-select" data-round="${round}" data-idx="${idx}" data-field="winner">
-  //         <option value="">— Select —</option>
-  //         <option value="${esc(m.team1||'')}" ${m.winner===m.team1?'selected':''}>${esc(m.team1||'Team 1')}</option>
-  //         <option value="${esc(m.team2||'')}" ${m.winner===m.team2?'selected':''}>${esc(m.team2||'Team 2')}</option>
-  //       </select>
-  //     </div>
-  //     <div class="admin-fields">
-  //       <button class="save-btn" onclick="saveMatchResult('${round}',${idx})">💾 Save Result</button>
-  //       ${played?`<span class="badge correct">✓ Saved</span>`:''}
-  //     </div>
-  //   </div>`;
-  // }
-
-  function renderCleanAdminMatch(round, idx) {
+  function renderCleanAdminMatch(round, idx){
     const m = state.matches?.[round]?.[idx] || {};
-    const hasTeams = m.team1 && m.team2;
-  
     const teamOptions = getAvailableTeamsForMatch(round, idx);
-    const isTie = m.score1 !== undefined && m.score2 !== undefined && m.score1 === m.score2;
-    const showWinnerDropdown = m.played && isTie;
-  
+    const isTie = m.score1 === m.score2 && m.score1 !== undefined;
+    const showWinner = m.played && isTie;
+    const hasFullResult = m.played && m.winner;
+
     return `
       <div class="match-card admin-match" id="admin-${round}-${idx}">
-        <div class="match-id">${ROUND_LABELS[round]} · Match ${idx + 1}</div>
-  
-        <!-- Team Dropdowns / Inputs -->
+        <div class="match-id">${ROUND_LABELS[round]} · Match ${idx+1}</div>
         <div class="admin-fields">
           <select class="admin-input team-select" data-round="${round}" data-idx="${idx}" data-field="team1">
             <option value="">Team 1</option>
-            ${teamOptions.map(t => `<option value="${t}" ${m.team1 === t ? 'selected' : ''}>${t}</option>`).join('')}
+            ${teamOptions.map(t => `<option value="${t}" ${m.team1===t?'selected':''}>${t}</option>`).join('')}
           </select>
           <span class="vs-mini">vs</span>
           <select class="admin-input team-select" data-round="${round}" data-idx="${idx}" data-field="team2">
             <option value="">Team 2</option>
-            ${teamOptions.map(t => `<option value="${t}" ${m.team2 === t ? 'selected' : ''}>${t}</option>`).join('')}
+            ${teamOptions.map(t => `<option value="${t}" ${m.team2===t?'selected':''}>${t}</option>`).join('')}
           </select>
         </div>
-  
-        <!-- Scores (only required when saving full result) -->
         <div class="admin-fields">
-          <input class="admin-input score-input" data-round="${round}" data-idx="${idx}" data-field="score1"
-                 type="number" min="0" placeholder="0" value="${m.score1 ?? ''}">
+          <input class="admin-input score-input" data-round="${round}" data-idx="${idx}" data-field="score1" type="number" placeholder="0" value="${m.score1 ?? ''}">
           <span class="vs-mini">–</span>
-          <input class="admin-input score-input" data-round="${round}" data-idx="${idx}" data-field="score2"
-                 type="number" min="0" placeholder="0" value="${m.score2 ?? ''}">
+          <input class="admin-input score-input" data-round="${round}" data-idx="${idx}" data-field="score2" type="number" placeholder="0" value="${m.score2 ?? ''}">
         </div>
-  
-        <!-- Winner dropdown (only when scores are tied) -->
-        <div class="winner-dropdown-container" style="display: ${showWinnerDropdown ? 'block' : 'none'};">
-          <div class="admin-fields">
-            <label class="field-label" style="width:100%;">Winner (on penalties)</label>
-            <select class="admin-input admin-select winner-select" data-round="${round}" data-idx="${idx}" data-field="winner">
-              <option value="">Select winner</option>
-              ${m.team1 ? `<option value="${m.team1}" ${m.winner === m.team1 ? 'selected' : ''}>${m.team1}</option>` : ''}
-              ${m.team2 ? `<option value="${m.team2}" ${m.winner === m.team2 ? 'selected' : ''}>${m.team2}</option>` : ''}
-            </select>
-          </div>
+        <div class="winner-dropdown-container" style="display:${showWinner ? 'block' : 'none'}">
+          <select class="admin-input" data-round="${round}" data-idx="${idx}" data-field="winner">
+            <option value="">Select Winner</option>
+            ${m.team1 ? `<option value="${m.team1}" ${m.winner===m.team1?'selected':''}>${m.team1}</option>` : ''}
+            ${m.team2 ? `<option value="${m.team2}" ${m.winner===m.team2?'selected':''}>${m.team2}</option>` : ''}
+          </select>
         </div>
-  
-        <div class="admin-fields" style="gap: 0.5rem; flex-wrap: wrap;">
-          <button class="save-btn" style="background:#6366f1" onclick="saveMatchFixtures('${round}', ${idx})">
-            Save Fixtures
-          </button>
-          <button class="save-btn" onclick="saveCleanMatchResult('${round}', ${idx})">
-            Save Full Result
-          </button>
-          ${hasTeams ? `<span class="badge correct">Fixtures Saved</span>` : ''}
+        <div class="admin-fields">
+          <button class="save-btn" style="background:#6366f1" onclick="saveMatchFixtures('${round}',${idx})">Save Fixtures</button>
+          <button class="save-btn" onclick="saveCleanMatchResult('${round}',${idx})">Save Full Result</button>
+          ${hasFullResult ? `<span class="badge correct">Result Saved</span>` : 
+            (m.team1 && m.team2 ? `<span class="badge" style="background:#6366f133;color:#a5b4fc">Fixtures Saved</span>` : '')}
         </div>
-      </div>
-    `;
+      </div>`;
   }
 
-  function getAvailableTeamsForMatch(round, idx) {
-    // R32 - fixed list of teams
-    if (round === "R32") {
-      return ["ALG", "ARG", "AUS", "AUT", 
-              "BEL", "BIH", "BRA", "CAN", 
-              "CIV", "COL", "CPV", "CRO",
-              "COD", "ECU", "EGY", "ENG",
-              "ESP", "FRA", "GER", "GHA",
-              "JPN", "MAR", "MEX", "NED",
-              "NOR", "PAR", "POR", "RSA",
-              "SEN", "SWE", "SUI", "USA"];
+  function getAvailableTeamsForMatch(round){
+    if(round === "R32"){
+      return ["ALG","ARG","AUS","AUT","BEL","BIH","BRA","CAN","CIV","COL","CPV","CRO","COD","ECU","EGY","ENG","ESP","FRA","GER","GHA","JPN","MAR","MEX","NED","NOR","PAR","POR","RSA","SEN","SWE","SUI","USA"];
     }
-  
-    const prevRoundMap = { R16: "R32", QF: "R16", SF: "QF", F: "SF" };
-    const prevRound = prevRoundMap[round];
-    if (!prevRound) return [];
-  
-    const available = new Set();
-  
-    const prevMatches = state.matches?.[prevRound] || {};
-    Object.values(prevMatches).forEach(match => {
-      if (match.team1) available.add(match.team1);
-      if (match.team2) available.add(match.team2);
-      if (match.winner) available.add(match.winner);
+    const prev = {R16:"R32", QF:"R16", SF:"QF", F:"SF"}[round];
+    if(!prev) return [];
+    const set = new Set();
+    Object.values(state.matches?.[prev] || {}).forEach(m => {
+      if(m.team1) set.add(m.team1);
+      if(m.team2) set.add(m.team2);
     });
-  
-    return Array.from(available);
+    return Array.from(set);
   }
 
-  function bindCleanAdminInputs() {
-    document.querySelectorAll(".score-input").forEach(input => {
-      input.addEventListener("input", () => {
-        const round = input.dataset.round;
-        const idx = input.dataset.idx;
-        toggleWinnerDropdown(round, idx);
-      });
-    });}
-
-  function toggleWinnerDropdown(round, idx) {
-    const card = document.getElementById(`admin-${round}-${idx}`);
-    if (!card) return;
-  
-    const score1El = card.querySelector(`[data-field="score1"]`);
-    const score2El = card.querySelector(`[data-field="score2"]`);
-    const winnerContainer = card.querySelector(".winner-dropdown-container");
-  
-    if (!score1El || !score2El || !winnerContainer) return;
-  
-    const score1 = parseInt(score1El.value) || 0;
-    const score2 = parseInt(score2El.value) || 0;
-  
-    winnerContainer.style.display = (score1 === score2) ? "block" : "none";
-  }
-
-  function bindAdminInputs(){
-    // checkboxes re-render
-    document.querySelectorAll(".admin-check").forEach(cb => {
-      cb.addEventListener("change", async e => {
-        const { round, idx, field } = e.target.dataset;
-        await dbSet(`/matches/${round}/${idx}/${field}`, e.target.checked);
+  function bindCleanAdminInputs(){
+    document.querySelectorAll(".score-input").forEach(el => {
+      el.addEventListener("input", () => {
+        const round = el.dataset.round;
+        const idx = el.dataset.idx;
+        const card = document.getElementById(`admin-${round}-${idx}`);
+        if(!card) return;
+        const s1 = parseInt(card.querySelector('[data-field="score1"]').value)||0;
+        const s2 = parseInt(card.querySelector('[data-field="score2"]').value)||0;
+        const winBox = card.querySelector(".winner-dropdown-container");
+        if(winBox) winBox.style.display = (s1 === s2) ? "block" : "none";
       });
     });
   }
-
-  // window.saveMatchResult = async (round, idx) => {
-  //   const get = (field) => {
-  //     const el2 = document.querySelector(`.admin-input[data-round="${round}"][data-idx="${idx}"][data-field="${field}"]`);
-  //     return el2 ? el2.value : "";
-  //   };
-  //   const team1 = get("team1").trim();
-  //   const team2 = get("team2").trim();
-  //   const score1 = get("score1");
-  //   const score2 = get("score2");
-  //   const winner = get("winner").trim();
-  //   const extraTime = document.querySelector(`.admin-check[data-round="${round}"][data-idx="${idx}"][data-field="extraTime"]`)?.checked || false;
-  //   const penalties = document.querySelector(`.admin-check[data-round="${round}"][data-idx="${idx}"][data-field="penalties"]`)?.checked || false;
-  //   const penScore1 = get("penScore1");
-  //   const penScore2 = get("penScore2");
-
-  //   if(!team1||!team2||score1===""|score2==="") { alert("Please fill team names and scores."); return; }
-  //   if(!winner){ alert("Please select a winner."); return; }
-
-  //   const matchData = {
-  //     team1, team2,
-  //     score1: Number(score1), score2: Number(score2),
-  //     extraTime, penalties,
-  //     winner,
-  //     played: true
-  //   };
-  //   if(penalties){ matchData.penScore1 = Number(penScore1); matchData.penScore2 = Number(penScore2); }
-
-  //   await dbSet(`/matches/${round}/${idx}`, matchData);
-
-  //   // Propagate winner to next round's bracket slot
-  //   await propagateWinner(round, idx, winner, team1, team2);
-
-  //   alert(`✓ Result saved: ${team1} ${score1}–${score2} ${team2} (Winner: ${winner})`);
-  // };
-
-  window.saveCleanMatchResult = async (round, idx) => {
-    const card = document.getElementById(`admin-${round}-${idx}`);
-    if (!card) return;
-  
-    const getVal = (field) => {
-      const el = card.querySelector(`[data-field="${field}"]`);
-      return el ? el.value.trim() : "";
-    };
-  
-    const team1 = getVal("team1");
-    const team2 = getVal("team2");
-    const score1 = parseInt(getVal("score1"));
-    const score2 = parseInt(getVal("score2"));
-    let winner = getVal("winner");
-  
-    if (!team1 || !team2 || isNaN(score1) || isNaN(score2)) {
-      alert("Please fill both teams and scores.");
-      return;
-    }
-  
-    if (score1 === score2 && !winner) {
-      alert("Scores are tied. Please select the winner from the dropdown.");
-      return;
-    }
-  
-    if (score1 !== score2) {
-      winner = score1 > score2 ? team1 : team2;
-    }
-  
-    const matchData = {
-      team1,
-      team2,
-      score1,
-      score2,
-      winner,
-      played: true,
-      extraTime: score1 === score2,
-      penalties: score1 === score2
-    };
-  
-    await set(ref(db, `matches/${round}/${idx}`), matchData);
-    await propagateWinner(round, idx, winner);
-  
-    renderAdmin();
-  };
 
   window.saveMatchFixtures = async (round, idx) => {
     const card = document.getElementById(`admin-${round}-${idx}`);
-    if (!card) return;
-  
-    const getVal = (field) => {
-      const el = card.querySelector(`[data-field="${field}"]`);
-      return el ? el.value.trim() : "";
-    };
-  
-    const team1 = getVal("team1");
-    const team2 = getVal("team2");
-  
-    if (!team1 || !team2) {
-      alert("Please select both teams for the fixture.");
-      return;
-    }
-  
-    // Only save teams (no scores, no winner, played = false)
-    const fixtureData = {
-      team1,
-      team2,
-      played: false
-    };
-  
-    await set(ref(db, `matches/${round}/${idx}`), fixtureData);
-  
-
+    const t1 = card.querySelector('[data-field="team1"]').value.trim();
+    const t2 = card.querySelector('[data-field="team2"]').value.trim();
+    if(!t1 || !t2) return alert("Select both teams");
+    await set(ref(db, `matches/${round}/${idx}`), {team1:t1, team2:t2, played:false});
     renderAdmin();
   };
 
-  async function propagateWinner(round, idx, winner, team1, team2){
-    // Map round → next round
-    const next = { R32:"R16", R16:"QF", QF:"SF", SF:"F" };
-    const nextRound = next[round];
-    if(!nextRound) return;
+  window.saveCleanMatchResult = async (round, idx) => {
+    const card = document.getElementById(`admin-${round}-${idx}`);
+    const t1 = card.querySelector('[data-field="team1"]').value.trim();
+    const t2 = card.querySelector('[data-field="team2"]').value.trim();
+    const s1 = parseInt(card.querySelector('[data-field="score1"]').value);
+    const s2 = parseInt(card.querySelector('[data-field="score2"]').value);
+    let winner = card.querySelector('[data-field="winner"]')?.value || "";
 
-    // Winner goes to slot Math.floor(idx/2), as team1 or team2 based on idx%2
-    const nextMatchIdx = Math.floor(idx/2);
-    const slot = idx%2===0 ? "team1" : "team2";
-    await dbSet(`/matches/${nextRound}/${nextMatchIdx}/${slot}`, winner);
-  }
+    if(!t1 || !t2 || isNaN(s1) || isNaN(s2)) return alert("Fill teams and scores");
+    if(s1 === s2 && !winner) return alert("Select winner for tie");
 
-  // ── Utility ────────────────────────────────────────────────────────────────
-  function esc(str){ return String(str||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+    if(s1 !== s2) winner = s1 > s2 ? t1 : t2;
 
-  window.closeModal = () => {
-    el("modal-overlay").classList.add("hidden");
+    await set(ref(db, `matches/${round}/${idx}`), {
+      team1: t1, team2: t2, score1: s1, score2: s2, winner, played: true
+    });
+    renderAdmin();
   };
 
+  function esc(str){ return String(str||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 </script>
 
 <style>
-  /* ─── Design tokens ──────────────────────────────────────────────── */
-  :root {
-    --bg:        #0a0e1a;
-    --surface:   #111827;
-    --surface2:  #1a2235;
-    --border:    #2a3550;
-    --text:      #e8edf5;
-    --muted:     #6b7a99;
-    --garry:     #f5a623;
-    --harry:     #4fc3f7;
-    --green:     #22c55e;
-    --red:       #ef4444;
-    --accent:    #6366f1;
-    --radius:    10px;
-    --font-body: 'Segoe UI', system-ui, sans-serif;
-    --font-mono: 'Fira Mono', monospace;
-  }
-
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: var(--font-body);
-    min-height: 100vh;
-    font-size: 14px;
-  }
-
-  /* ─── Header ──────────────────────────────────────────────────────── */
-  header {
-    background: linear-gradient(135deg, #0d1b3e 0%, #1a1040 50%, #0d2e1a 100%);
-    border-bottom: 1px solid var(--border);
-    padding: 1.5rem 1rem 1rem;
-  }
-  .header-inner { text-align: center; margin-bottom: 1.25rem; }
-  .logo { font-size: 2rem; font-weight: 800; letter-spacing: -1px; }
-  .subtitle { color: var(--muted); font-size: 0.85rem; margin-top: 0.2rem; letter-spacing: 0.5px; }
-
-  /* ─── Leaderboard ──────────────────────────────────────────────── */
-  .leaderboard {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 1rem;
-    flex-wrap: wrap;
-  }
-  .lb-card {
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 0.9rem 1.5rem;
-    text-align: center;
-    min-width: 170px;
-    transition: border-color .2s;
-    position: relative;
-  }
-  .lb-card.leading {
-    border-color: var(--green);
-    box-shadow: 0 0 20px rgba(34,197,94,.18);
-  }
-  .lb-crown { font-size: 1.4rem; min-height: 1.8rem; }
-  .lb-name { font-size: 1.1rem; font-weight: 700; }
-  .lb-total { font-size: 2.2rem; font-weight: 900; line-height: 1.1; margin: 0.2rem 0; }
-  .lb-breakdown { font-size: 0.7rem; color: var(--muted); display: flex; gap: 0.5rem; flex-wrap: wrap; justify-content: center; margin-top: 0.3rem; }
-  .lb-vs { font-size: 1.5rem; }
-  .garry-color { color: var(--garry); }
-  .harry-color { color: var(--harry); }
-
-  /* ─── Tabs ─────────────────────────────────────────────────────── */
-  .tabs {
-    display: flex;
-    gap: 0;
-    border-bottom: 1px solid var(--border);
-    background: var(--surface);
-    overflow-x: auto;
-  }
-  .tab {
-    background: none;
-    border: none;
-    color: var(--muted);
-    padding: 0.85rem 1.2rem;
-    cursor: pointer;
-    font-size: 0.85rem;
-    font-weight: 600;
-    border-bottom: 2px solid transparent;
-    white-space: nowrap;
-    transition: color .15s, border-color .15s;
-  }
-  .tab:hover { color: var(--text); }
-  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
-
-  /* ─── Tab panels ──────────────────────────────────────────────── */
-  .tab-panel { display: none; padding: 1.25rem 1rem; max-width: 960px; margin: 0 auto; }
-  .tab-panel.active { display: block; }
-
-  .section-header { margin-bottom: 1.25rem; }
-  .section-header h2 { font-size: 1.3rem; }
-  .section-header p { color: var(--muted); font-size: 0.82rem; margin-top: 0.3rem; }
-
-  /* ─── Cards ───────────────────────────────────────────────────── */
-  .card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 1rem 1.25rem;
-    margin-bottom: 1rem;
-  }
-
-  /* ─── Round sections ─────────────────────────────────────────── */
-  .round-section { margin-bottom: 2rem; }
-  .round-title {
-    font-size: 1rem;
-    font-weight: 700;
-    color: var(--text);
-    margin-bottom: 0.75rem;
-    display: flex;
-    align-items: center;
-    gap: 0.6rem;
-    flex-wrap: wrap;
-  }
-  .round-pts-info {
-    font-size: 0.72rem;
-    font-weight: 400;
-    color: var(--muted);
-    background: var(--surface2);
-    padding: 2px 8px;
-    border-radius: 20px;
-    border: 1px solid var(--border);
-  }
-
-  /* ─── Match grids ────────────────────────────────────────────── */
-  .og-grid, .admin-grid {
-    display: grid;
-    gap: 0.85rem;
-    grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
-  }
-  .match-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 0.85rem;
-  }
-  .match-id { font-size: 0.68rem; color: var(--muted); margin-bottom: 0.5rem; letter-spacing: 0.5px; text-transform: uppercase; }
-  .actual-result {
-    font-size: 0.82rem;
-    background: var(--surface2);
-    border-radius: 6px;
-    padding: 0.4rem 0.6rem;
-    margin-bottom: 0.6rem;
-    display: flex;
-    gap: 0.4rem;
-    align-items: center;
-    flex-wrap: wrap;
-  }
-  .actual-result.pending { color: var(--muted); }
-  .matchup-teams { color: var(--muted); }
-  .winner-tag { color: var(--green); font-size: 0.76rem; }
-
-  /* ─── OG / NP player entries ─────────────────────────────────── */
-  .og-players { display: flex; flex-direction: column; gap: 0.75rem; }
-  .og-player-entry {
-    background: var(--surface2);
-    border-radius: 7px;
-    padding: 0.55rem 0.65rem;
-    border: 1px solid var(--border);
-  }
-  .og-player-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 0.4rem;
-  }
-  .og-fields {
-    display: flex;
-    gap: 0.4rem;
-    align-items: center;
-    flex-wrap: wrap;
-    margin-bottom: 0.3rem;
-  }
-  .og-fields:last-child { margin-bottom: 0; }
-  .vs-mini { color: var(--muted); font-size: 0.75rem; }
-  .field-label { font-size: 0.72rem; color: var(--muted); }
-
-  /* ─── Inputs ──────────────────────────────────────────────────── */
-  input[type="text"], input[type="number"], input[type="url"], select {
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: 5px;
-    color: var(--text);
-    padding: 0.3rem 0.5rem;
-    font-size: 0.8rem;
-    outline: none;
-    transition: border-color .15s;
-  }
-  input[type="text"]:focus, input[type="number"]:focus, select:focus {
-    border-color: var(--accent);
-  }
-  .og-input, .np-input { flex: 1; min-width: 60px; }
-  .score-input { max-width: 56px; flex: 0 0 56px; text-align: center; }
-  input[readonly] { opacity: 0.55; cursor: not-allowed; }
-  select { flex: 1; }
-
-  button {
-    background: var(--accent);
-    color: #fff;
-    border: none;
-    border-radius: 5px;
-    padding: 0.3rem 0.75rem;
-    cursor: pointer;
-    font-size: 0.78rem;
-    font-weight: 600;
-    transition: opacity .15s;
-  }
-  button:hover { opacity: 0.85; }
-  .save-btn { background: var(--green); padding: 0.4rem 1rem; font-size: 0.82rem; }
-
-  /* ─── Badges ──────────────────────────────────────────────────── */
-  .badge {
-    font-size: 0.7rem;
-    padding: 1px 6px;
-    border-radius: 12px;
-    font-weight: 600;
-  }
-  .badge.correct { background: rgba(34,197,94,.15); color: var(--green); border: 1px solid var(--green); }
-  .badge.wrong   { background: rgba(239,68,68,.12);  color: var(--red);   border: 1px solid var(--red); }
-  .badge.et      { background: rgba(99,102,241,.15); color: #a5b4fc; border: 1px solid var(--accent); }
-  .badge.pen     { background: rgba(245,166,35,.12); color: var(--garry); border: 1px solid var(--garry); }
-
-  .pts-badge {
-    font-size: 0.72rem;
-    padding: 2px 7px;
-    border-radius: 10px;
-    font-weight: 700;
-  }
-  .pts-badge.pos { background: rgba(34,197,94,.18); color: var(--green); }
-  .pts-badge.neg { background: rgba(239,68,68,.15); color: var(--red); }
-
-  .bold { font-weight: 700; }
-
-  /* ─── Admin tab ───────────────────────────────────────────────── */
-  .admin-match { margin-bottom: 0; }
-  .admin-fields {
-    display: flex;
-    gap: 0.5rem;
-    align-items: center;
-    flex-wrap: wrap;
-    margin-bottom: 0.45rem;
-  }
-  .admin-fields:last-child { margin-bottom: 0; }
-  .admin-input { flex: 1; min-width: 70px; }
-  .admin-select { max-width: 160px; }
-  .checkboxes { gap: 1rem; }
-  .checkboxes label { font-size: 0.78rem; color: var(--muted); cursor: pointer; display: flex; align-items: center; gap: 0.3rem; }
-  .pen-fields { border-top: 1px solid var(--border); padding-top: 0.4rem; }
-
-  /* ─── Winner card ─────────────────────────────────────────────── */
-  .winner-card h3 { margin-bottom: 0.75rem; font-size: 1rem; }
-  .winner-row { display: flex; gap: 1rem; flex-wrap: wrap; }
-  .winner-entry { display: flex; align-items: center; gap: 0.5rem; flex: 1; min-width: 200px; flex-wrap: wrap; }
-  .winner-entry span.garry-color, .winner-entry span.harry-color { font-weight: 700; white-space: nowrap; }
-
-  /* ─── Group stage ─────────────────────────────────────────────── */
-  .group-stage-card h2 { margin-bottom: 0.75rem; }
-  .gs-scores { display: flex; gap: 1.5rem; margin: 1rem 0; flex-wrap: wrap; }
-  .gs-player {
-    flex: 1;
-    min-width: 120px;
-    background: var(--surface2);
-    border-radius: var(--radius);
-    border: 1px solid var(--border);
-    padding: 1rem;
-    text-align: center;
-  }
-  .gs-name { display: block; font-size: 1rem; font-weight: 700; margin-bottom: 0.3rem; }
-  .gs-player.garry .gs-name { color: var(--garry); }
-  .gs-player.harry .gs-name { color: var(--harry); }
-  .gs-pts { font-size: 2.2rem; font-weight: 900; }
-  .gs-link-note { color: var(--muted); font-size: 0.82rem; margin-top: 0.75rem; line-height: 1.5; }
-  .gs-ext-link { color: var(--accent); text-decoration: none; }
-  .gs-ext-link:hover { text-decoration: underline; }
-  .input-row { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
-
-  /* ─── Modal ───────────────────────────────────────────────────── */
-  .modal-overlay {
-    position: fixed; inset: 0;
-    background: rgba(0,0,0,.6);
-    display: flex; align-items: center; justify-content: center;
-    z-index: 100;
-  }
-  .modal-overlay.hidden { display: none; }
-  .modal {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 1.5rem;
-    max-width: 480px;
-    width: 90%;
-  }
-
-  /* ─── Scrollbars ──────────────────────────────────────────────── */
-  ::-webkit-scrollbar { width: 5px; height: 5px; }
-  ::-webkit-scrollbar-track { background: var(--bg); }
-  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-
-  /* ─── Responsive ──────────────────────────────────────────────── */
-  @media(max-width:500px){
-    .lb-card { min-width: 130px; padding: 0.7rem 1rem; }
-    .lb-total { font-size: 1.8rem; }
-    .tab { padding: 0.7rem 0.85rem; font-size: 0.78rem; }
-    .og-grid, .admin-grid { grid-template-columns: 1fr; }
-    .winner-row { flex-direction: column; }
-  }
-  .winner-dropdown-container {
-  margin-top: 0.3rem;
-  padding-top: 0.4rem;
-  border-top: 1px dashed var(--border);
-  }
-
-  .team-select {
-  font-family: monospace;
-  font-weight: 600;
-  }
+  /* (Keep your existing CSS from the file you pasted — it's mostly good) */
+  :root { --bg:#0a0e1a; --surface:#111827; --accent:#6366f1; --green:#22c55e; }
+  body { background:#0a0e1a; color:#e8edf5; font-family:system-ui; }
+  .tab-panel { padding:1rem; max-width:1100px; margin:auto; }
+  .admin-grid, .og-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:1rem; }
+  .match-card { background:#111827; border:1px solid #2a3550; border-radius:10px; padding:0.85rem; }
+  .save-btn { background:#22c55e; color:white; border:none; padding:0.4rem 1rem; border-radius:6px; cursor:pointer; }
+  .badge { font-size:0.75rem; padding:2px 8px; border-radius:12px; }
+  .badge.correct { background:#22c55e22; color:#22c55e; }
 </style>
 </head>
 <body>
