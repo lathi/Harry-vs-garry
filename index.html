@@ -503,57 +503,87 @@
 
   function renderNewPredMatch(round, idx, isWager){
     const actual = state.matches?.[round]?.[idx] || {};
-    const gNP    = state.newpred?.garry?.[round]?.[idx] || {};
-    const hNP    = state.newpred?.harry?.[round]?.[idx] || {};
+    const gNP = state.newpred?.garry?.[round]?.[idx] || {};
+    const hNP = state.newpred?.harry?.[round]?.[idx] || {};
     const played = actual.played;
-
+  
     const gPoints = played ? calcNPMatchPoints("garry", round, idx) : null;
     const hPoints = played ? calcNPMatchPoints("harry", round, idx) : null;
-
-    return `<div class="match-card og-match" data-round="${round}" data-idx="${idx}">
-      <div class="match-id">${ROUND_LABELS[round]} · Match ${idx+1}</div>
-      ${actual.team1 ? `<div class="actual-result"><span class="matchup-teams">${esc(actual.team1)} vs ${esc(actual.team2)}</span>
-        ${played?`<strong>${actual.score1}–${actual.score2} → ${esc(actual.winner)}</strong>`:'<span class="pending">⏳</span>'}
-      </div>` : `<div class="actual-result pending">🔒 Teams TBD</div>`}
-      <div class="og-players">
-        ${renderNPEntry("garry","Garry","garry-color", round, idx, gNP, actual, gPoints, isWager)}
-        ${renderNPEntry("harry","Harry","harry-color", round, idx, hNP, actual, hPoints, isWager)}
+  
+    return `
+      <div class="match-card og-match" data-round="${round}" data-idx="${idx}">
+        <div class="match-id">${ROUND_LABELS[round]} · Match ${idx + 1}</div>
+  
+        ${actual.team1 
+          ? `<div class="actual-result">
+               <span class="matchup-teams">${esc(actual.team1)} vs ${esc(actual.team2)}</span>
+               ${played 
+                 ? `<strong>${actual.score1}–${actual.score2} → ${esc(actual.winner)}</strong>` 
+                 : `<span class="pending">⏳ Awaiting result</span>`}
+             </div>` 
+          : `<div class="actual-result pending">🔒 Teams will appear after R32 results</div>`}
+  
+        <div class="og-players">
+          ${renderNPEntry("garry", "Garry", "garry-color", round, idx, gNP, actual, gPoints, isWager)}
+          ${renderNPEntry("harry", "Harry", "harry-color", round, idx, hNP, actual, hPoints, isWager)}
+        </div>
       </div>
-    </div>`;
+    `;
   }
 
   function renderNPEntry(player, name, colorClass, round, idx, pred, actual, points, isWager){
     const played = actual.played;
     let badges = "";
-    if(played && points!==null){
-      badges = `<span class="pts-badge ${points>0?'pos':points<0?'neg':''}">${points>=0?'+':''}${points} pts</span>`;
+    if (played && points !== null) {
+      badges = `<span class="pts-badge ${points > 0 ? 'pos' : points < 0 ? 'neg' : ''}">${points >= 0 ? '+' : ''}${points} pts</span>`;
     }
-
-    if(isWager){
-      return `<div class="og-player-entry">
-        <div class="og-player-header"><span class="${colorClass} bold">${name}</span>${badges}</div>
-        <div class="og-fields">
-          <label class="field-label">Wager</label>
-          <input class="np-input score-input" data-player="${player}" data-round="${round}" data-idx="${idx}" data-field="wager"
-            type="number" min="0" placeholder="pts" value="${pred.wager!==undefined?pred.wager:''}" ${played?'readonly':''}/>
-          <label class="field-label">Pick winner</label>
-          <input class="np-input" data-player="${player}" data-round="${round}" data-idx="${idx}" data-field="predictedWinner"
-            type="text" placeholder="Winner" value="${esc(pred.predictedWinner||'')}" ${played?'readonly':''}/>
-        </div>
-      </div>`;
+  
+    if (isWager) {
+      // SF and Final stay the same (wager system)
+      return `
+        <div class="og-player-entry">
+          <div class="og-player-header">
+            <span class="${colorClass} bold">${name}</span>${badges}
+          </div>
+          <div class="og-fields">
+            <label class="field-label">Wager</label>
+            <input class="np-input score-input" data-player="${player}" data-round="${round}" data-idx="${idx}" data-field="wager"
+                   type="number" min="0" placeholder="pts" value="${pred.wager ?? ''}" ${played ? 'readonly' : ''} />
+            <label class="field-label">Pick winner</label>
+            <input class="np-input" data-player="${player}" data-round="${round}" data-idx="${idx}" data-field="predictedWinner"
+                   type="text" placeholder="Winner" value="${esc(pred.predictedWinner || '')}" ${played ? 'readonly' : ''} />
+          </div>
+        </div>`;
     } else {
-      return `<div class="og-player-entry">
-        <div class="og-player-header"><span class="${colorClass} bold">${name}</span>${badges}</div>
-        <div class="og-fields">
-          <input class="np-input score-input" data-player="${player}" data-round="${round}" data-idx="${idx}" data-field="score1"
-            type="number" min="0" placeholder="0" value="${pred.score1!==undefined?pred.score1:''}" ${played?'readonly':''}/>
-          <span class="vs-mini">–</span>
-          <input class="np-input score-input" data-player="${player}" data-round="${round}" data-idx="${idx}" data-field="score2"
-            type="number" min="0" placeholder="0" value="${pred.score2!==undefined?pred.score2:''}" ${played?'readonly':''}/>
-          <input class="np-input" data-player="${player}" data-round="${round}" data-idx="${idx}" data-field="qualifiedTeam"
-            type="text" placeholder="Who qualifies?" value="${esc(pred.qualifiedTeam||'')}" ${played?'readonly':''}/>
-        </div>
-      </div>`;
+      // R32, R16, QF → Use dropdown for qualifiedTeam (except R32 which can stay text or dropdown)
+      const showDropdown = ["R16", "QF"].includes(round);
+      const teamOptions = showDropdown ? getAvailableTeamsForMatch(round, idx) : [];
+  
+      return `
+        <div class="og-player-entry">
+          <div class="og-player-header">
+            <span class="${colorClass} bold">${name}</span>${badges}
+          </div>
+          <div class="og-fields">
+            <input class="np-input score-input" data-player="${player}" data-round="${round}" data-idx="${idx}" data-field="score1"
+                   type="number" min="0" placeholder="0" value="${pred.score1 ?? ''}" ${played ? 'readonly' : ''} />
+            <span class="vs-mini">–</span>
+            <input class="np-input score-input" data-player="${player}" data-round="${round}" data-idx="${idx}" data-field="score2"
+                   type="number" min="0" placeholder="0" value="${pred.score2 ?? ''}" ${played ? 'readonly' : ''} />
+          </div>
+  
+          <div class="og-fields">
+            <label class="field-label">Who qualifies?</label>
+            ${showDropdown 
+              ? `<select class="np-input" data-player="${player}" data-round="${round}" data-idx="${idx}" data-field="qualifiedTeam">
+                   <option value="">Select team</option>
+                   ${teamOptions.map(t => `<option value="${t}" ${pred.qualifiedTeam === t ? 'selected' : ''}>${t}</option>`).join('')}
+                 </select>`
+              : `<input class="np-input" data-player="${player}" data-round="${round}" data-idx="${idx}" data-field="qualifiedTeam"
+                        type="text" placeholder="Who qualifies?" value="${esc(pred.qualifiedTeam || '')}" ${played ? 'readonly' : ''} />`
+            }
+          </div>
+        </div>`;
     }
   }
 
@@ -579,13 +609,19 @@
 
   function bindNewPredInputs(){
     document.querySelectorAll(".np-input").forEach(input => {
-      input.addEventListener("change", async e => {
+      input.addEventListener("change", async (e) => {
         const { player, round, idx, field } = e.target.dataset;
-        const val = e.target.value;
-        await dbSet(`/newpred/${player}/${round}/${idx}/${field}`, (field==="score1"||field==="score2"||field==="wager") ? (val===""?null:Number(val)) : val);
+        let val = e.target.value;
+  
+        if (field === "score1" || field === "score2" || field === "wager") {
+          val = val === "" ? null : Number(val);
+        }
+  
+        await set(ref(db, `newpred/${player}/${round}/${idx}/${field}`), val);
       });
     });
   }
+  
 
   // ── Admin tab ─────────────────────────────────────────────────────────────
   // function renderAdmin(){
