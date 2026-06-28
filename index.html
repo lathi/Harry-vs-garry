@@ -596,17 +596,32 @@
 
 // R16 / QF / SF / Final - Player defined slots
 
+
   function renderNewPredMatchFree(round, idx) {
     const hPred = state.newpred?.harry?.[round]?.[idx] || {};
     const gPred = state.newpred?.garry?.[round]?.[idx] || {};
+  
+    // Get possible teams for dropdown (from previous round or R32)
+    const possibleTeams = getAvailableTeamsForMatch(round, idx);
   
     return `
       <div class="match-card" data-round="${round}" data-idx="${idx}">
         <div class="match-id">${ROUND_LABELS[round]} Slot ${idx + 1}</div>
         
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
-          ${renderPlayerInputsFree("harry", round, idx, hPred)}
-          ${renderPlayerInputsFree("garry", round, idx, gPred)}
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          
+          <!-- Garry (G) -->
+          <div>
+            <div style="font-weight:700; color:#f5a623; margin-bottom:6px;">G</div>
+            ${renderPlayerInputsFree("garry", round, idx, gPred, possibleTeams)}
+          </div>
+  
+          <!-- Harry (H) -->
+          <div>
+            <div style="font-weight:700; color:#4fc3f7; margin-bottom:6px;">H</div>
+            ${renderPlayerInputsFree("harry", round, idx, hPred, possibleTeams)}
+          </div>
+  
         </div>
       </div>
     `;
@@ -646,21 +661,69 @@
     `;
   }
 
-
-  function renderPlayerInputsFree(player, round, idx, pred) {
+  function renderPlayerInputsFree(player, round, idx, pred, possibleTeams) {
+    const score1 = pred.score1 ?? '';
+    const score2 = pred.score2 ?? '';
+    const isTie = score1 !== '' && score2 !== '' && Number(score1) === Number(score2);
+  
+    // Team dropdowns
+    const team1Options = possibleTeams.map(t => 
+      `<option value="${t}" ${pred.team1 === t ? 'selected' : ''}>${t}</option>`
+    ).join('');
+  
+    const team2Options = possibleTeams.map(t => 
+      `<option value="${t}" ${pred.team2 === t ? 'selected' : ''}>${t}</option>`
+    ).join('');
+  
+    // Only show "Who qualifies?" if scores are tied
+    let qualifiedHTML = '';
+    if (isTie) {
+      qualifiedHTML = `
+        <div style="margin-top: 6px;">
+          <label style="font-size: 0.75rem; display:block; margin-bottom: 2px;">Who qualifies? (tied)</label>
+          <select class="np-input" data-player="${player}" data-round="${round}" data-idx="${idx}" data-field="qualifiedTeam">
+            <option value="">Select winner</option>
+            ${possibleTeams.map(t => 
+              `<option value="${t}" ${pred.qualifiedTeam === t ? 'selected' : ''}>${t}</option>`
+            ).join('')}
+          </select>
+        </div>`;
+    } else if (score1 !== '' || score2 !== '') {
+      // Auto show winner if not tied
+      const autoWinner = Number(score1) > Number(score2) ? pred.team1 : pred.team2;
+      if (autoWinner) {
+        qualifiedHTML = `
+          <div style="margin-top: 6px; font-size: 0.85rem;">
+            → <strong>${autoWinner}</strong> <span style="color:#6b7a99">(from score)</span>
+          </div>`;
+      }
+    }
+  
     return `
       <div>
-        <div style="font-weight:600; color:${player === 'harry' ? '#4fc3f7' : '#f5a623'}; margin-bottom:4px;">${player}</div>
+        <!-- Teams -->
         <div class="og-fields">
-          <input class="np-input" data-player="${player}" data-round="${round}" data-idx="${idx}" data-field="team1" type="text" placeholder="Team 1" value="${pred.team1 || ''}">
+          <select class="np-input" data-player="${player}" data-round="${round}" data-idx="${idx}" data-field="team1">
+            <option value="">Team 1</option>
+            ${team1Options}
+          </select>
           <span class="vs-mini">vs</span>
-          <input class="np-input" data-player="${player}" data-round="${round}" data-idx="${idx}" data-field="team2" type="text" placeholder="Team 2" value="${pred.team2 || ''}">
+          <select class="np-input" data-player="${player}" data-round="${round}" data-idx="${idx}" data-field="team2">
+            <option value="">Team 2</option>
+            ${team2Options}
+          </select>
         </div>
+  
+        <!-- Scores -->
         <div class="og-fields">
-          <input class="np-input score-input" data-player="${player}" data-round="${round}" data-idx="${idx}" data-field="score1" type="number" placeholder="0" value="${pred.score1 ?? ''}">
+          <input class="np-input score-input" data-player="${player}" data-round="${round}" data-idx="${idx}" data-field="score1"
+                 type="number" placeholder="0" value="${score1}">
           <span class="vs-mini">–</span>
-          <input class="np-input score-input" data-player="${player}" data-round="${round}" data-idx="${idx}" data-field="score2" type="number" placeholder="0" value="${pred.score2 ?? ''}">
+          <input class="np-input score-input" data-player="${player}" data-round="${round}" data-idx="${idx}" data-field="score2"
+                 type="number" placeholder="0" value="${score2}">
         </div>
+  
+        ${qualifiedHTML}
       </div>
     `;
   }
