@@ -490,17 +490,17 @@
       </div>
     `;
   
-    // R32 - Linked to Admin fixtures
+    // ===================== R32 (Linked to Admin) =====================
     html += `<div class="round-section">
       <h3 class="round-title">Round of 32 <span class="round-pts-info">Linked to actual fixtures</span></h3>
       <div class="og-grid">`;
   
     for (let i = 0; i < MATCH_COUNT.R32; i++) {
-      html += renderNewPredMatchLinked(round = "R32", i);
+      html += renderNewPredMatchLinked("R32", i);   // ← Fixed
     }
     html += `</div></div>`;
   
-    // R16 - Player defined (8 fixed slots)
+    // ===================== R16 (Player defined - 8 slots) =====================
     html += `<div class="round-section">
       <h3 class="round-title">Round of 16 <span class="round-pts-info">Your predicted bracket (8 slots)</span></h3>
       <div class="og-grid">`;
@@ -509,7 +509,7 @@
     }
     html += `</div></div>`;
   
-    // QF - Player defined (4 fixed slots)
+    // ===================== QF (Player defined - 4 slots) =====================
     html += `<div class="round-section">
       <h3 class="round-title">Quarter Finals <span class="round-pts-info">Your predicted bracket (4 slots)</span></h3>
       <div class="og-grid">`;
@@ -518,7 +518,7 @@
     }
     html += `</div></div>`;
   
-    // SF - Player defined (2 fixed slots)
+    // ===================== SF (Player defined - 2 slots) =====================
     html += `<div class="round-section">
       <h3 class="round-title">Semi Finals <span class="round-pts-info">Your predicted bracket (2 slots)</span></h3>
       <div class="og-grid">`;
@@ -527,7 +527,7 @@
     }
     html += `</div></div>`;
   
-    // Final - Player defined (1 slot)
+    // ===================== Final (Player defined - 1 slot) =====================
     html += `<div class="round-section">
       <h3 class="round-title">Final <span class="round-pts-info">Your predicted bracket (1 slot)</span></h3>
       <div class="og-grid">`;
