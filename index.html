@@ -146,12 +146,8 @@
               </div>
             </div>
             <p class="gs-link-note">For the full group stage breakdown, visit your tracking spreadsheet:<br>
-              <a id="gs-link" href="#" target="_blank" class="gs-ext-link">📎 Open Group Stage Tracker</a>
+              <a id="gs-link" href="https://lathi.github.io/Harry-vs-garry/groupstage" target="_blank" class="gs-ext-link">📎 Open Group Stage Tracker</a>
             </p>
-            <div class="input-row" style="margin-top:1rem">
-              <input id="gs-url" type="url" placeholder="Paste your group stage tracker URL here…" style="flex:1"/>
-              <button onclick="saveGsLink()">Save Link</button>
-            </div>
           </div>
         </div>
       </main>
@@ -171,10 +167,10 @@
     });
 
     // Group stage link save
-    window.saveGsLink = async () => {
-      const url = el("gs-url").value.trim();
-      if(url){ await dbSet("/meta/gsLink", url); alert("Saved!"); }
-    };
+    // window.saveGsLink = async () => {
+    //   const url = el("gs-url").value.trim();
+    //   if(url){ await dbSet("/meta/gsLink", url); alert("Saved!"); }
+    // };
 
     // Modal close
     el("modal-overlay").addEventListener("click", e => {
