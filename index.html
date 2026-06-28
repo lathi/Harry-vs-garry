@@ -497,7 +497,25 @@
       html += `</div></div>`;
     }
 
+    // ==================== PHASE A: Predicted Advancing Teams ====================
+  html += `<div class="round-section">
+      <h3 class="round-title">My Predicted Advancing Teams <span class="round-pts-info">Primary scoring (+5 per correct team)</span></h3>
+      
+      <div class="card">
+        <h4>Teams I predict will reach Round of 16</h4>
+        <div id="newpred-r16-advancing-teams"></div>
+        <button onclick="savePredictedAdvancingTeams('R16')" class="save-btn" style="margin-top: 8px; background:#6366f1">Save R16 Predictions</button>
+      </div>
+  
+      <div class="card" style="margin-top: 1rem;">
+        <h4>Teams I predict will reach Quarter Finals</h4>
+        <div id="newpred-qf-advancing-teams"></div>
+        <button onclick="savePredictedAdvancingTeams('QF')" class="save-btn" style="margin-top: 8px; background:#6366f1">Save QF Predictions</button>
+      </div>
+    </div>`
+    ;
     panel.innerHTML = html;
+    setTimeout(() => {renderPredictedAdvancingTeams();}, 80);
     bindNewPredInputs();
   }
 
@@ -973,6 +991,63 @@
 
   window.closeModal = () => {
     el("modal-overlay").classList.add("hidden");
+  };
+
+  // ==================== PHASE A HELPER FUNCTIONS ====================
+
+  function renderPredictedAdvancingTeams() {
+  // R16
+    const r16Container = document.getElementById("newpred-r16-advancing-teams");
+    if (r16Container) {
+      const teams = getAvailableTeamsForMatch("R16", 0);
+      const saved = state.newpred?.harry?.predictedAdvancing?.R16 || [];
+      r16Container.innerHTML = createAdvancingCheckboxes(teams, saved, "R16");
+    }
+  
+    // QF
+    const qfContainer = document.getElementById("newpred-qf-advancing-teams");
+    if (qfContainer) {
+      const teams = getAvailableTeamsForMatch("QF", 0);
+      const saved = state.newpred?.harry?.predictedAdvancing?.QF || [];
+      qfContainer.innerHTML = createAdvancingCheckboxes(teams, saved, "QF");
+    }
+  }
+
+  function createAdvancingCheckboxes(teams, selected, round) {
+    let html = `<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 6px;">`;
+    teams.forEach(team => {
+      const checked = selected.includes(team) ? "checked" : "";
+      html += `
+        <label style="font-size: 0.85rem; display: flex; align-items: center; gap: 4px;">
+          <input type="checkbox" value="${team}" ${checked} data-round="${round}">
+          <span>${team}</span>
+        </label>`;
+    });
+    html += `</div>`;
+    return html;
+  }
+
+
+  window.savePredictedAdvancingTeams = async (round) => {
+    const containerId = round === "R16" ? "newpred-r16-advancing-teams" : "newpred-qf-advancing-teams";
+    const container = document.getElementById(containerId);
+    if (!container) return;
+  
+    const checked = Array.from(container.querySelectorAll("input:checked")).map(cb => cb.value);
+    const max = round === "R16" ? 8 : 4;
+  
+    if (checked.length > max) {
+      alert(`You can select maximum ${max} teams for ${round}.`);
+      return;
+    }
+  
+    if (!state.newpred.harry) state.newpred.harry = {};
+    if (!state.newpred.harry.predictedAdvancing) state.newpred.harry.predictedAdvancing = {};
+  
+    state.newpred.harry.predictedAdvancing[round] = checked;
+  
+    await set(ref(db, `newpred/harry/predictedAdvancing/${round}`), checked);
+    alert(`Saved predicted advancing teams for ${round}`);
   };
 
 </script>
