@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>⚽ Harry vs Garry · WC 2026</title>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+// ── 🔥 PASTE YOUR FIREBASE CONFIG HERE ──────────────────────────────────────
+const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_PROJECT.firebaseapp.com",
+  databaseURL: "https://YOUR_PROJECT-default-rtdb.firebaseio.com",
+  projectId: "YOUR_PROJECT",
+  storageBucket: "YOUR_PROJECT.appspot.com",
+  messagingSenderId: "YOUR_SENDER_ID",
+  appId: "YOUR_APP_ID"
+};
+// ─────────────────────────────────────────────────────────────────────────────
+
+const app = initializeApp(firebaseConfig);
+const db  = getDatabase(app);
+
+// Default scores — edit these freely
+const DEFAULT = {
+  garry: { group: 1425, og: 0, newpred: 0, wager: 0 },
+  harry: { group: 1285, og: 0, newpred: 0, wager: 0 }
+};
+
+let scores = JSON.parse(JSON.stringify(DEFAULT));
+
+// ── Firebase sync ─────────────────────────────────────────────────────────
+onValue(ref(db, "/scores"), snap => {
+  if (snap.val()) scores = snap.val();
+  else scores = JSON.parse(JSON.stringify(DEFAULT));
+  render();
+});
+
+async function save() {
+  await set(ref(db, "/scores"), scores);
+}
+
+// ── Render ────────────────────────────────────────────────────────────────
+function render() {
+  const gt = total("garry"), ht = total("harry");
+  const leader = gt > ht ? "garry" : ht > gt ? "harry" : "tie";
+
+  // leaderboard
+  document.getElementById("lb-garry-total").textContent = gt;
+  document.getElementById("lb-harry-total").textContent = ht;
+  document.getElementById("lb-garry-card").className = "lb-card" + (leader === "garry" ? " leading" : "");
+  document.getElementById("lb-harry-card").className = "lb-card" + (leader === "harry" ? " leading" : "");
+  document.getElementById("lb-garry-crown").textContent = leader === "garry" ? "👑" : "";
+  document.getElementById("lb-harry-crown").textContent = leader === "harry" ? "👑" : "";
+  document.getElementById("lb-vs").textContent = leader === "tie" ? "🤝" : "⚔️";
+
+  // score rows
+  for (const cat of ["group", "og", "newpred"]) {
+    for (const p of ["garry", "harry"]) {
+      const inp = document.getElementById(`inp-${p}-${cat}`);
+      if (inp && document.activeElement !== inp) inp.value = scores[p][cat];
+    }
+  }
+}
+
+function total(p) {
+  return (scores[p].group || 0) + (scores[p].og || 0) + (scores[p].newpred || 0) + (scores[p].wager || 0);
+}
+
+// ── Input handler ─────────────────────────────────────────────────────────
+window.onScoreChange = async (player, cat, val) => {
+  scores[player][cat] = Number(val) || 0;
+  render();
+  await save();
+};
+
+window.nudge = async (player, cat, delta) => {
+  scores[player][cat] = (scores[player][cat] || 0) + delta;
+  render();
+  await save();
+};
+</script>
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap');
+
+:root {
+  --bg: #0f0c29;
+  --card: #1a1640;
+  --card2: #231e55;
+  --border: #35306a;
+  --text: #f0eeff;
+  --muted: #8880bb;
+  --garry: #ffb347;
+  --harry: #56cffa;
+  --green: #4ade80;
+  --accent: #a78bfa;
+  --r: 14px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  background-image: radial-gradient(ellipse at 20% 0%, #2a1a6e55 0%, transparent 60%),
+                    radial-gradient(ellipse at 80% 100%, #1a3a6e44 0%, transparent 60%);
+  color: var(--text);
+  font-family: 'Nunito', sans-serif;
+  min-height: 100vh;
+  padding-bottom: 3rem;
+}
+
+/* ── Header ─────────────────────────────── */
+header {
+  text-align: center;
+  padding: 2.5rem 1rem 1.5rem;
+}
+.logo { font-size: 2rem; font-weight: 900; letter-spacing: -1px; }
+.logo span { color: var(--accent); }
+.tagline { color: var(--muted); font-size: 0.85rem; margin-top: 0.3rem; }
+
+/* ── Leaderboard ─────────────────────────── */
+.leaderboard {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+  padding: 0 1rem 2rem;
+  flex-wrap: wrap;
+}
+.lb-card {
+  background: var(--card);
+  border: 2px solid var(--border);
+  border-radius: var(--r);
+  padding: 1.2rem 2rem;
+  text-align: center;
+  min-width: 160px;
+  transition: border-color .3s, box-shadow .3s;
+}
+.lb-card.leading {
+  border-color: var(--green);
+  box-shadow: 0 0 28px rgba(74,222,128,.22);
+}
+.lb-crown { font-size: 1.6rem; min-height: 2rem; line-height: 1; }
+.lb-name { font-size: 1.1rem; font-weight: 800; margin: .2rem 0; }
+.lb-name.garry { color: var(--garry); }
+.lb-name.harry { color: var(--harry); }
+.lb-total { font-size: 3rem; font-weight: 900; line-height: 1.05; }
+.lb-vs { font-size: 2rem; }
+
+/* ── Score table ─────────────────────────── */
+.container { max-width: 680px; margin: 0 auto; padding: 0 1rem; }
+
+.score-table {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  overflow: hidden;
+}
+
+.table-header {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  background: var(--card2);
+  padding: .7rem 1rem;
+  font-size: .75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--muted);
+  border-bottom: 1px solid var(--border);
+}
+.table-header .col-mid { text-align: center; }
+.table-header .col-right { text-align: right; }
+
+.score-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  align-items: center;
+  padding: .9rem 1rem;
+  border-bottom: 1px solid var(--border);
+  gap: .5rem;
+  transition: background .15s;
+}
+.score-row:last-child { border-bottom: none; }
+.score-row:hover { background: #ffffff06; }
+
+.row-label {
+  font-weight: 700;
+  font-size: .88rem;
+}
+.row-label small {
+  display: block;
+  font-size: .7rem;
+  color: var(--muted);
+  font-weight: 600;
+  margin-top: .1rem;
+}
+
+.score-cell {
+  display: flex;
+  align-items: center;
+  gap: .3rem;
+}
+.score-cell.right { justify-content: flex-end; }
+.score-cell.center { justify-content: center; }
+
+.nudge {
+  background: var(--card2);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  border-radius: 6px;
+  width: 26px; height: 26px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 800;
+  line-height: 1;
+  transition: background .12s, color .12s;
+  flex-shrink: 0;
+}
+.nudge:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+.score-input {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-family: 'Nunito', sans-serif;
+  font-size: .95rem;
+  font-weight: 800;
+  width: 72px;
+  padding: .3rem .4rem;
+  text-align: center;
+  outline: none;
+  transition: border-color .15s;
+}
+.score-input:focus { border-color: var(--accent); }
+.score-input.garry-inp:focus { border-color: var(--garry); }
+.score-input.harry-inp:focus { border-color: var(--harry); }
+
+/* ── Totals row ──────────────────────────── */
+.totals-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  align-items: center;
+  padding: .9rem 1rem;
+  background: var(--card2);
+  border-top: 2px solid var(--border);
+  gap: .5rem;
+  margin-top: -.1px;
+  border-radius: 0 0 var(--r) var(--r);
+}
+.totals-label { font-weight: 900; font-size: .9rem; color: var(--accent); }
+.total-val {
+  font-size: 1.4rem;
+  font-weight: 900;
+  text-align: center;
+}
+.total-val.right { text-align: right; }
+.total-val.garry { color: var(--garry); }
+.total-val.harry { color: var(--harry); }
+
+/* ── Hint ────────────────────────────────── */
+.hint {
+  text-align: center;
+  color: var(--muted);
+  font-size: .75rem;
+  margin-top: 1.2rem;
+}
+
+/* ── Scoring guide ───────────────────────── */
+.guide {
+  margin-top: 2rem;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  overflow: hidden;
+}
+.guide-header {
+  background: var(--card2);
+  padding: .75rem 1rem;
+  font-weight: 800;
+  font-size: .85rem;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  user-select: none;
+}
+.guide-body {
+  padding: .85rem 1rem;
+  display: none;
+  font-size: .78rem;
+  color: var(--muted);
+  line-height: 1.8;
+}
+.guide-body.open { display: block; }
+.guide-body b { color: var(--text); }
+
+.gs-link-section { margin-top: 2rem; text-align: center; }
+.gs-link-section a {
+  color: var(--accent);
+  font-size: .82rem;
+  text-decoration: none;
+  font-weight: 700;
+}
+.gs-link-section a:hover { text-decoration: underline; }
+
+@media (max-width: 480px) {
+  .lb-card { min-width: 130px; padding: 1rem 1.2rem; }
+  .lb-total { font-size: 2.2rem; }
+  .score-input { width: 60px; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">⚽ Harry <span>vs</span> Garry</div>
+  <div class="tagline">FIFA World Cup 2026 · Prediction Battle</div>
+</header>
+
+<!-- Leaderboard -->
+<div class="leaderboard">
+  <div class="lb-card" id="lb-garry-card">
+    <div class="lb-crown" id="lb-garry-crown"></div>
+    <div class="lb-name garry">Garry</div>
+    <div class="lb-total" id="lb-garry-total">—</div>
+  </div>
+  <div class="lb-vs" id="lb-vs">⚔️</div>
+  <div class="lb-card" id="lb-harry-card">
+    <div class="lb-crown" id="lb-harry-crown"></div>
+    <div class="lb-name harry">Harry</div>
+    <div class="lb-total" id="lb-harry-total">—</div>
+  </div>
+</div>
+
+<!-- Score table -->
+<div class="container">
+  <div class="score-table">
+
+    <!-- Header -->
+    <div class="table-header">
+      <div>Category</div>
+      <div class="col-mid" style="color:var(--garry)">Garry</div>
+      <div class="col-right" style="color:var(--harry)">Harry</div>
+    </div>
+
+    <!-- Group Stage -->
+    <div class="score-row">
+      <div class="row-label">
+        🌍 Group Stage
+        <small><a href="#" id="gs-link" style="color:var(--accent);text-decoration:none" target="_blank">view tracker ↗</a></small>
+      </div>
+      <div class="score-cell center">
+        <button class="nudge" onclick="nudge('garry','group',-5)">−</button>
+        <input class="score-input garry-inp" id="inp-garry-group" type="number"
+          oninput="onScoreChange('garry','group',this.value)" />
+        <button class="nudge" onclick="nudge('garry','group',5)">+</button>
+      </div>
+      <div class="score-cell right">
+        <button class="nudge" onclick="nudge('harry','group',-5)">−</button>
+        <input class="score-input harry-inp" id="inp-harry-group" type="number"
+          oninput="onScoreChange('harry','group',this.value)" />
+        <button class="nudge" onclick="nudge('harry','group',5)">+</button>
+      </div>
+    </div>
+
+    <!-- OG Predictions -->
+    <div class="score-row">
+      <div class="row-label">
+        🎯 OG Predictions
+        <small>Pre-tournament KO picks</small>
+      </div>
+      <div class="score-cell center">
+        <button class="nudge" onclick="nudge('garry','og',-5)">−</button>
+        <input class="score-input garry-inp" id="inp-garry-og" type="number"
+          oninput="onScoreChange('garry','og',this.value)" />
+        <button class="nudge" onclick="nudge('garry','og',5)">+</button>
+      </div>
+      <div class="score-cell right">
+        <button class="nudge" onclick="nudge('harry','og',-5)">−</button>
+        <input class="score-input harry-inp" id="inp-harry-og" type="number"
+          oninput="onScoreChange('harry','og',this.value)" />
+        <button class="nudge" onclick="nudge('harry','og',5)">+</button>
+      </div>
+    </div>
+
+    <!-- New Predictions -->
+    <div class="score-row">
+      <div class="row-label">
+        🔮 New Predictions
+        <small>R32 / R16 / QF picks</small>
+      </div>
+      <div class="score-cell center">
+        <button class="nudge" onclick="nudge('garry','newpred',-5)">−</button>
+        <input class="score-input garry-inp" id="inp-garry-newpred" type="number"
+          oninput="onScoreChange('garry','newpred',this.value)" />
+        <button class="nudge" onclick="nudge('garry','newpred',5)">+</button>
+      </div>
+      <div class="score-cell right">
+        <button class="nudge" onclick="nudge('harry','newpred',-5)">−</button>
+        <input class="score-input harry-inp" id="inp-harry-newpred" type="number"
+          oninput="onScoreChange('harry','newpred',this.value)" />
+        <button class="nudge" onclick="nudge('harry','newpred',5)">+</button>
+      </div>
+    </div>
+
+    <!-- Wagers -->
+    <div class="score-row">
+      <div class="row-label">
+        🎲 Wagers
+        <small>SF &amp; Final bet points</small>
+      </div>
+      <div class="score-cell center">
+        <button class="nudge" onclick="nudge('garry','wager',-5)">−</button>
+        <input class="score-input garry-inp" id="inp-garry-wager" type="number"
+          oninput="onScoreChange('garry','wager',this.value)" />
+        <button class="nudge" onclick="nudge('garry','wager',5)">+</button>
+      </div>
+      <div class="score-cell right">
+        <button class="nudge" onclick="nudge('harry','wager',-5)">−</button>
+        <input class="score-input harry-inp" id="inp-harry-wager" type="number"
+          oninput="onScoreChange('harry','wager',this.value)" />
+        <button class="nudge" onclick="nudge('harry','wager',5)">+</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Totals (outside table, below it) -->
+  <div class="totals-row">
+    <div class="totals-label">Total</div>
+    <div class="total-val garry" id="lb-garry-total2">—</div>
+    <div class="total-val harry right" id="lb-harry-total2">—</div>
+  </div>
+
+  <div class="hint">Tap + / − to nudge by 5, or type any value directly</div>
+
+  <!-- Scoring guide -->
+  <div class="guide">
+    <div class="guide-header" onclick="this.nextElementSibling.classList.toggle('open')">
+      📖 Scoring guide <span>▾</span>
+    </div>
+    <div class="guide-body">
+      <b>OG Predictions (pre-tournament)</b><br>
+      R32: +10 qualify · +10 matchup · +10 score<br>
+      R16: +10 qualify · +10 matchup · +10 score<br>
+      QF: +15 qualify · +10 matchup · +10 score<br>
+      SF: +20 qualify · +10 matchup · +10 score<br>
+      Final: +25 qualify · +10 score · +50 correct winner<br><br>
+      <b>New Predictions (live KO — R32 / R16 / QF)</b><br>
+      +5 correct qualifier · +10 correct score<br>
+      Penalty shootout scores are not counted.<br><br>
+      <b>Wagers (SF &amp; Final)</b><br>
+      Stake points before the match. Correct winner = +wager, wrong = −wager.
+    </div>
+  </div>
+
+  <!-- Group stage tracker link editor -->
+  <div class="gs-link-section">
+    <div style="margin-bottom:.4rem;font-size:.75rem;color:var(--muted)">Group stage tracker URL</div>
+    <div style="display:flex;gap:.5rem;justify-content:center;flex-wrap:wrap">
+      <input id="gs-url-inp" type="url" placeholder="https://…"
+        style="background:var(--card);border:1px solid var(--border);border-radius:8px;
+               color:var(--text);font-family:Nunito;font-size:.8rem;padding:.35rem .6rem;
+               outline:none;width:260px;"/>
+      <button onclick="saveGsLink()"
+        style="background:var(--accent);color:#fff;border:none;border-radius:8px;
+               padding:.35rem .9rem;font-family:Nunito;font-weight:700;font-size:.8rem;cursor:pointer;">
+        Save link
+      </button>
+    </div>
+  </div>
+
+</div><!-- /container -->
+
+<script type="module">
+  import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+  import { getApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  const db2 = getDatabase(getApp());
+
+  onValue(ref(db2, "/meta/gsLink"), snap => {
+    const url = snap.val() || "";
+    document.getElementById("gs-link").href = url || "#";
+    document.getElementById("gs-url-inp").value = url;
+  });
+
+  window.saveGsLink = async () => {
+    const url = document.getElementById("gs-url-inp").value.trim();
+    await set(ref(db2, "/meta/gsLink"), url);
+  };
+
+  // mirror totals to second spot
+  const obs = new MutationObserver(() => {
+    document.getElementById("lb-garry-total2").textContent =
+      document.getElementById("lb-garry-total").textContent;
+    document.getElementById("lb-harry-total2").textContent =
+      document.getElementById("lb-harry-total").textContent;
+  });
+  obs.observe(document.getElementById("lb-garry-total"), { childList:true, characterData:true, subtree:true });
+  obs.observe(document.getElementById("lb-harry-total"), { childList:true, characterData:true, subtree:true });
+</script>
+
+</body>
+</html>
