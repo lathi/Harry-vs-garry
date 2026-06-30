@@ -1,277 +1,386 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>2026 FIFA World Cup Prediction Dashboard</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
-        body { font-family: 'Plus Jakarta Sans', sans-serif; }
-        .bracket-node::before {
-            content: ''; position: absolute; right: -20px; top: 50%;
-            width: 20px; height: 2px; background-color: #cbd5e1;
-        }
-    </style>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<title>⚽ Harry vs Garry · WC 2026 Dashboard</title>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+// --- FIREBASE CONFIGURATION ---
+const firebaseConfig = {
+    apiKey: "AIzaSyDCAV-T_P1CkCzAg7g6VC991rFI-hBxUF0",
+    authDomain: "garryvsharry.firebaseapp.com",
+    projectId: "garryvsharry",
+    storageBucket: "garryvsharry.firebasestorage.app",
+    messagingSenderId: "736527270681",
+    appId: "1:736527270681:web:d8a0a2731c59f7a071bb88",
+    measurementId: "G-ZGXCS3202B"
+};
+
+const app = initializeApp(firebaseConfig);
+const db  = getDatabase(app);
+
+const DEFAULT = {
+  garry: { group: 0, og: 0, newpred: 0, wager: 0 },
+  harry: { group: 0, og: 0, newpred: 0, wager: 0 }
+};
+
+let scores = JSON.parse(JSON.stringify(DEFAULT));
+
+// --- REALTIME SYNC ---
+onValue(ref(db, "/scores"), snap => {
+  if (snap.val()) scores = snap.val();
+  else scores = JSON.parse(JSON.stringify(DEFAULT));
+  render();
+});
+
+async function save() {
+  await set(ref(db, "/scores"), scores);
+}
+
+function render() {
+  const gt = total("garry"), ht = total("harry");
+  const leader = gt > ht ? "garry" : ht > gt ? "harry" : "tie";
+
+  // Leaderboard scoring elements
+  document.getElementById("lb-garry-total").textContent = gt;
+  document.getElementById("lb-harry-total").textContent = ht;
+  
+  document.getElementById("lb-garry-card").className = "player-score garry" + (leader === "garry" ? " leading" : "");
+  document.getElementById("lb-harry-card").className = "player-score harry" + (leader === "harry" ? " leading" : "");
+  
+  document.getElementById("lb-garry-crown").innerHTML = leader === "garry" ? "👑" : "";
+  document.getElementById("lb-harry-crown").innerHTML = leader === "harry" ? "👑" : "";
+  document.getElementById("lb-vs").textContent = leader === "tie" ? "🤝" : "VS";
+
+  // Populating live field inputs
+  for (const cat of ["group", "og", "newpred", "wager"]) {
+    for (const p of ["garry", "harry"]) {
+      const inp = document.getElementById(`inp-${p}-${cat}`);
+      if (inp && document.activeElement !== inp) inp.value = scores[p][cat];
+    }
+  }
+}
+
+function total(p) {
+  return (scores[p].group || 0) + (scores[p].og || 0) + (scores[p].newpred || 0) + (scores[p].wager || 0);
+}
+
+window.onScoreChange = async (player, cat, val) => {
+  scores[player][cat] = Number(val) || 0;
+  render();
+  await save();
+};
+
+window.nudge = async (player, cat, delta) => {
+  scores[player][cat] = (scores[player][cat] || 0) + delta;
+  render();
+  await save();
+};
+</script>
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap');
+  
+  :root { 
+    --bg: #0a0e1a; 
+    --surface: #111827; 
+    --surface2: #1a2338; 
+    --border: #1f2d47; 
+    --gold: #f5c518; 
+    --gold2: #e0a800; 
+    --cyan: #00d4ff; 
+    --green: #22c55e; 
+    --red: #ef4444; 
+    --muted: #6b7280; 
+    --text: #f1f5f9; 
+    --text2: #94a3b8; 
+    --harry: #3b82f6; 
+    --garry: #ec4899; 
+    --radius: 12px; 
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; min-height: 100vh; overflow-x: hidden; padding-bottom: 60px; }
+  
+  /* --- Header --- */
+  header { background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%); border-bottom: 2px solid var(--gold); padding: 24px 16px; text-align: center; }
+  .header-title { font-family: 'Bebas Neue', sans-serif; font-size: 32px; letter-spacing: 3px; color: var(--gold); line-height: 1; }
+  .header-sub { font-size: 11px; color: var(--text2); letter-spacing: 2px; text-transform: uppercase; margin-top: 6px; }
+
+  /* --- Scoreboard (Harry Left, Garry Right) --- */
+  .scoreboard { display: flex; gap: 10px; padding: 16px; background: var(--surface); border-bottom: 1px solid var(--border); max-width: 700px; margin: 0 auto; }
+  .player-score { flex: 1; border-radius: var(--radius); padding: 14px 10px; text-align: center; border: 2px solid transparent; transition: all 0.3s; position: relative; }
+  .player-score.harry { background: linear-gradient(135deg, rgba(59,130,246,0.12), rgba(59,130,246,0.03)); border-color: rgba(59,130,246,0.3); }
+  .player-score.garry { background: linear-gradient(135deg, rgba(236,72,153,0.12), rgba(236,72,153,0.03)); border-color: rgba(236,72,153,0.3); }
+  .player-score.leading { transform: scale(1.02); }
+  .player-score.harry.leading { border-color: var(--harry); box-shadow: 0 0 20px rgba(59,130,246,0.2); }
+  .player-score.garry.leading { border-color: var(--garry); box-shadow: 0 0 20px rgba(236,72,153,0.2); }
+  .player-name { font-size: 12px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 4px; }
+  .harry .player-name { color: var(--harry); }
+  .garry .player-name { color: var(--garry); }
+  .player-pts { font-family: 'Bebas Neue', sans-serif; font-size: 42px; letter-spacing: 1px; line-height: 1; }
+  .harry .player-pts { color: var(--harry); }
+  .garry .player-pts { color: var(--garry); }
+  .crown-slot { position: absolute; top: -10px; left: 50%; transform: translateX(-50%); font-size: 16px; }
+  .vs-badge { display: flex; align-items: center; justify-content: center; width: 36px; flex-shrink: 0; font-family: 'Bebas Neue', sans-serif; font-size: 18px; color: var(--muted); letter-spacing: 1px; }
+
+  .container { max-width: 700px; margin: 20px auto; padding: 0 12px; }
+
+  /* --- Score Table Styling --- */
+  .score-table { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; margin-bottom: 20px; }
+  .table-header { display: grid; grid-template-columns: 1.2fr 1fr 1fr; background: var(--surface2); padding: 12px 16px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--text2); border-bottom: 1px solid var(--border); }
+  .table-header .col-mid { text-align: center; color: var(--harry); }
+  .table-header .col-right { text-align: right; color: var(--garry); }
+  
+  .score-row { display: grid; grid-template-columns: 1.2fr 1fr 1fr; align-items: center; padding: 14px 16px; border-bottom: 1px solid var(--border); gap: 6px; }
+  .score-row:last-child { border-bottom: none; }
+  .row-label { font-weight: 600; font-size: 13px; color: var(--text); }
+  .row-label small { display: block; font-size: 10px; color: var(--text2); margin-top: 2px; font-weight: 400; }
+  .score-cell { display: flex; align-items: center; gap: 4px; }
+  .score-cell.center { justify-content: center; }
+  .score-cell.right { justify-content: flex-end; }
+
+  /* --- Contextual Embedded Inline Links --- */
+  .prediction-links { display: flex; gap: 8px; margin-top: 6px; }
+  .mini-link { font-size: 10px; text-decoration: none; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; transition: color 0.15s; }
+  .mini-link.h-link { color: var(--harry); }
+  .mini-link.h-link:hover { color: #60a5fa; text-decoration: underline; }
+  .mini-link.g-link { color: var(--garry); }
+  .mini-link.g-link:hover { color: #f472b6; text-decoration: underline; }
+
+  /* --- Custom Nudge Buttons and Inputs --- */
+  .nudge { background: var(--surface2); border: 1px solid var(--border); color: var(--text2); border-radius: 6px; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 14px; font-weight: 700; transition: all 0.15s; }
+  .nudge:hover { background: var(--border); color: var(--text); }
+  .harry-cell .nudge:hover { border-color: rgba(59,130,246,0.5); color: var(--harry); }
+  .garry-cell .nudge:hover { border-color: rgba(236,72,153,0.5); color: var(--garry); }
+  
+  .score-input { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-family: 'Bebas Neue', sans-serif; font-size: 18px; width: 54px; height: 30px; text-align: center; outline: none; transition: border-color 0.15s; -moz-appearance: textfield; }
+  .score-input::-webkit-inner-spin-button, .score-input::-webkit-outer-spin-button { -webkit-appearance: none; }
+  .score-input.harry-inp { color: var(--harry); }
+  .score-input.garry-inp { color: var(--garry); }
+  .score-input.harry-inp:focus { border-color: var(--harry); background: rgba(59,130,246,0.05); }
+  .score-input.garry-inp:focus { border-color: var(--garry); background: rgba(236,72,153,0.05); }
+
+  /* --- Unified Totals Frame --- */
+  .totals-row { display: grid; grid-template-columns: 1.2fr 1fr 1fr; align-items: center; padding: 14px 16px; background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius); gap: 6px; }
+  .totals-label { font-family: 'Bebas Neue', sans-serif; font-size: 20px; color: var(--gold); letter-spacing: 1px; }
+  .total-val { font-family: 'Bebas Neue', sans-serif; font-size: 26px; text-align: center; }
+  .total-val.right { text-align: right; }
+  .total-val.harry { color: var(--harry); }
+  .total-val.garry { color: var(--garry); }
+  .hint { text-align: center; color: var(--muted); font-size: 11px; margin-top: 8px; }
+
+  /* --- Live Bracket Link Anchor styling --- */
+  .bracket-anchor { text-decoration: none; display: block; color: inherit; margin-top: 24px; transition: transform 0.2s; }
+  .bracket-anchor:hover { transform: scale(1.01); }
+  .bracket-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; position: relative; }
+  .bracket-anchor:hover .bracket-card { border-color: var(--cyan); box-shadow: 0 0 15px rgba(0, 212, 255, 0.15); }
+  .bracket-title-wrapper { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+  .bracket-stage-title { font-family: 'Bebas Neue', sans-serif; font-size: 14px; color: var(--cyan); letter-spacing: 1px; margin-bottom: 8px; text-transform: uppercase; border-left: 3px solid var(--cyan); padding-left: 6px; }
+  .mini-matchup { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 6px 10px; margin-bottom: 8px; display: flex; justify-content: space-between; font-size: 12px; }
+  .mini-matchup span { font-weight: 600; }
+  .mini-matchup .m-live { color: var(--gold); font-size: 10px; font-weight: 700; background: rgba(245,197,24,0.1); padding: 1px 4px; border-radius: 4px; }
+  .view-all-tag { font-size: 11px; color: var(--cyan); font-weight: bold; letter-spacing: 0.5px; text-transform: uppercase; }
+
+  /* --- Rule Breakdown Guide --- */
+  .guide { margin-top: 24px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+  .guide-header { background: var(--surface2); padding: 12px 16px; font-weight: 700; font-size: 13px; color: var(--text2); cursor: pointer; display: flex; justify-content: space-between; align-items: center; user-select: none; }
+  .guide-body { padding: 14px 16px; display: none; font-size: 12px; color: var(--text2); line-height: 1.6; border-top: 1px solid var(--border); }
+  .guide-body.open { display: block; }
+  .guide-body b { color: var(--gold); }
+</style>
 </head>
-<body class="bg-slate-50 text-slate-900 min-h-screen pb-12">
+<body>
 
-    <!-- Top Navigation -->
-    <header class="bg-slate-900 text-white sticky top-0 z-50 shadow-md">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-            <div class="flex items-center space-x-3">
-                <i class="fa-solid font-bold text-xl text-emerald-400 fa-trophy"></i>
-                <span class="font-bold text-lg tracking-tight">WC2026 Prediction Central</span>
-            </div>
-            <div class="bg-slate-800 px-3 py-1.5 rounded-full border border-slate-700 text-xs font-semibold text-slate-300 flex items-center space-x-2">
-                <span class="w-2 h-2 bg-emerald-500 rounded-full animate-ping"></span>
-                <span>Live Data: July 1, 2026</span>
-            </div>
+<header>
+  <div class="header-title">⚽ HARRY VS GARRY CENTRAL</div>
+  <div class="header-sub">WC2026 Prediction Hub · Master Dashboard</div>
+</header>
+
+<!-- Scoreboard Leaderboard Section (Harry Left, Garry Right) -->
+<div class="scoreboard">
+  <div class="player-score harry" id="lb-harry-card">
+    <div class="crown-slot" id="lb-harry-crown"></div>
+    <div class="player-name">📈 Harry</div>
+    <div class="player-pts" id="lb-harry-total">—</div>
+  </div>
+  <div class="vs-badge" id="lb-vs">VS</div>
+  <div class="player-score garry" id="lb-garry-card">
+    <div class="crown-slot" id="lb-garry-crown"></div>
+    <div class="player-name">✨ Garry</div>
+    <div class="player-pts" id="lb-garry-total">—</div>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- Score Matrix Frame -->
+  <div class="score-table">
+    <div class="table-header">
+      <div>Category Breakdown</div>
+      <div class="col-mid">Harry Pts</div>
+      <div class="col-right">Garry Pts</div>
+    </div>
+
+    <!-- Group Stage Tier -->
+    <div class="score-row">
+      <div class="row-label">
+        🌍 Group Stage
+        <small><a href="#" id="gs-link" style="color:var(--cyan); text-decoration:none;" target="_blank">Open Group Tracker ↗</a></small>
+      </div>
+      <div class="score-cell center harry-cell">
+        <button class="nudge" onclick="nudge('harry','group',-5)">−</button>
+        <input class="score-input harry-inp" id="inp-harry-group" type="number" oninput="onScoreChange('harry','group',this.value)" />
+        <button class="nudge" onclick="nudge('harry','group',5)">+</button>
+      </div>
+      <div class="score-cell right garry-cell">
+        <button class="nudge" onclick="nudge('garry','group',-5)">−</button>
+        <input class="score-input garry-inp" id="inp-garry-group" type="number" oninput="onScoreChange('garry','group',this.value)" />
+        <button class="nudge" onclick="nudge('garry','group',5)">+</button>
+      </div>
+    </div>
+
+    <!-- OG Prediction Tier with Sub-links -->
+    <div class="score-row">
+      <div class="row-label">
+        🎯 OG Predictions
+        <small>Pre-tournament KO picks</small>
+        <div class="prediction-links">
+          <a href="https://github.com/YOUR_GITHUB_USERNAME/YOUR_REPO/blob/main/harry-og.png" target="_blank" class="mini-link h-link">Harry's Sheet ↗</a>
+          <a href="https://github.com/YOUR_GITHUB_USERNAME/YOUR_REPO/blob/main/garry-og.png" target="_blank" class="mini-link g-link">Garry's Sheet ↗</a>
         </div>
-    </header>
+      </div>
+      <div class="score-cell center harry-cell">
+        <button class="nudge" onclick="nudge('harry','og',-5)">−</button>
+        <input class="score-input harry-inp" id="inp-harry-og" type="number" oninput="onScoreChange('harry','og',this.value)" />
+        <button class="nudge" onclick="nudge('harry','og',5)">+</button>
+      </div>
+      <div class="score-cell right garry-cell">
+        <button class="nudge" onclick="nudge('garry','og',-5)">−</button>
+        <input class="score-input garry-inp" id="inp-garry-og" type="number" oninput="onScoreChange('garry','og',this.value)" />
+        <button class="nudge" onclick="nudge('garry','og',5)">+</button>
+      </div>
+    </div>
 
-    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8 space-y-8">
+    <!-- Live Mid-Tournament Predictions with Sub-links -->
+    <div class="score-row">
+      <div class="row-label">
+        🔮 New Predictions
+        <small>R32 / R16 / QF live adjustments</small>
+        <div class="prediction-links">
+          <a href="https://github.com/YOUR_GITHUB_USERNAME/YOUR_REPO/blob/main/harry-new.png" target="_blank" class="mini-link h-link">Harry's Sheet ↗</a>
+          <a href="https://github.com/YOUR_GITHUB_USERNAME/YOUR_REPO/blob/main/garry-new.png" target="_blank" class="mini-link g-link">Garry's Sheet ↗</a>
+        </div>
+      </div>
+      <div class="score-cell center harry-cell">
+        <button class="nudge" onclick="nudge('harry','newpred',-5)">−</button>
+        <input class="score-input harry-inp" id="inp-harry-newpred" type="number" oninput="onScoreChange('harry','newpred',this.value)" />
+        <button class="nudge" onclick="nudge('harry','newpred',5)">+</button>
+      </div>
+      <div class="score-cell right garry-cell">
+        <button class="nudge" onclick="nudge('garry','newpred',-5)">−</button>
+        <input class="score-input garry-inp" id="inp-garry-newpred" type="number" oninput="onScoreChange('garry','newpred',this.value)" />
+        <button class="nudge" onclick="nudge('garry','newpred',5)">+</button>
+      </div>
+    </div>
 
-        <!-- INTERACTIVE LIVE BRACKET STATUS (CLICKABLE) -->
-        <section class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden transition-all duration-200">
-            <div class="p-6 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-slate-900 text-white">
-                <div>
-                    <h2 class="text-xl font-bold flex items-center gap-2">
-                        <i class="fa-solid fa-sitemap text-emerald-400"></i> Live Bracket Status
-                    </h2>
-                    <p class="text-slate-400 text-xs mt-0.5">Round of 32 is actively underway. Click tabs below to swap views.</p>
-                </div>
-                <!-- Interactive Bracket View Toggles -->
-                <div class="flex bg-slate-800 p-1 rounded-xl border border-slate-700 self-start sm:self-center">
-                    <button onclick="switchBracketTab('summary')" id="tab-btn-summary" class="px-4 py-2 rounded-lg text-xs font-bold transition-all bg-emerald-500 text-white shadow-sm">
-                        Live Status Summary
-                    </button>
-                    <button onclick="switchBracketTab('full')" id="tab-btn-full" class="px-4 py-2 rounded-lg text-xs font-bold transition-all text-slate-400 hover:text-white">
-                        View Full Bracket
-                    </button>
-                </div>
-            </div>
+    <!-- Strategic Match Wagers -->
+    <div class="score-row">
+      <div class="row-label">
+        🎲 High Wagers
+        <small>SF & Final risk metrics</small>
+      </div>
+      <div class="score-cell center harry-cell">
+        <button class="nudge" onclick="nudge('harry','wager',-5)">−</button>
+        <input class="score-input harry-inp" id="inp-harry-wager" type="number" oninput="onScoreChange('harry','wager',this.value)" />
+        <button class="nudge" onclick="nudge('harry','wager',5)">+</button>
+      </div>
+      <div class="score-cell right garry-cell">
+        <button class="nudge" onclick="nudge('garry','wager',-5)">−</button>
+        <input class="score-input garry-inp" id="inp-garry-wager" type="number" oninput="onScoreChange('garry','wager',this.value)" />
+        <button class="nudge" onclick="nudge('garry','wager',5)">+</button>
+      </div>
+    </div>
+  </div>
 
-            <!-- TAB 1: LIVE STATUS SUMMARY -->
-            <div id="bracket-tab-summary" class="p-6 block">
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div class="p-4 bg-emerald-50 border border-emerald-100 rounded-xl">
-                        <div class="text-xs font-bold text-emerald-800 tracking-wider uppercase">Advanced to Round of 16</div>
-                        <div class="mt-2 flex flex-wrap gap-2">
-                            <span class="px-2.5 py-1 bg-white border border-emerald-200 rounded-lg text-xs font-semibold text-slate-800 shadow-sm">🇨🇦 Canada</span>
-                            <span class="px-2.5 py-1 bg-white border border-emerald-200 rounded-lg text-xs font-semibold text-slate-800 shadow-sm">🇵🇾 Paraguay</span>
-                            <span class="px-2.5 py-1 bg-white border border-emerald-200 rounded-lg text-xs font-semibold text-slate-800 shadow-sm">🇲🇦 Morocco</span>
-                            <span class="px-2.5 py-1 bg-white border border-emerald-200 rounded-lg text-xs font-semibold text-slate-800 shadow-sm">🇧🇷 Brazil</span>
-                            <span class="px-2.5 py-1 bg-white border border-emerald-200 rounded-lg text-xs font-semibold text-slate-800 shadow-sm">🇳🇴 Norway</span>
-                        </div>
-                    </div>
-                    <div class="p-4 bg-amber-50 border border-amber-100 rounded-xl">
-                        <div class="text-xs font-bold text-amber-800 tracking-wider uppercase">Live / Today's Matches (July 1)</div>
-                        <div class="mt-2 space-y-1.5 text-xs font-medium text-slate-700">
-                            <div class="flex justify-between items-center bg-white p-1.5 rounded-lg border border-amber-200">
-                                <span>🏴󠁧󠁢󠁥󠁮󠁧󠁿 England vs 🇨🇩 DR Congo</span>
-                                <span class="bg-amber-100 text-amber-800 text-[10px] font-bold px-1.5 py-0.5 rounded">12:00 PM EST</span>
-                            </div>
-                            <div class="flex justify-between items-center bg-white p-1.5 rounded-lg border border-amber-200">
-                                <span>🇺🇸 USA vs 🇧🇦 Bosnia</span>
-                                <span class="bg-amber-100 text-amber-800 text-[10px] font-bold px-1.5 py-0.5 rounded">5:00 PM EST</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="p-4 bg-slate-50 border border-slate-200 rounded-xl flex flex-col justify-between">
-                        <div>
-                            <div class="text-xs font-bold text-slate-500 tracking-wider uppercase">Tournament Progress</div>
-                            <div class="text-2xl font-black text-slate-800 mt-1">5 / 16</div>
-                            <p class="text-slate-500 text-[11px] mt-0.5">Round of 32 fixtures locked into next stage.</p>
-                        </div>
-                        <button onclick="switchBracketTab('full')" class="w-full mt-3 text-center bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs py-2 rounded-lg transition">
-                            Expand Full Layout Matrix &rarr;
-                        </button>
-                    </div>
-                </div>
-            </div>
+  <!-- Unified Aggregated Totals Block -->
+  <div class="totals-row">
+    <div class="totals-label">AGGREGATE SUM</div>
+    <div class="total-val harry" id="lb-harry-total2">—</div>
+    <div class="total-val garry right" id="lb-garry-total2">—</div>
+  </div>
+  <div class="hint">Use buttons to change values by 5, or manual key entries directly.</div>
 
-            <!-- TAB 2: FULL TOURNAMENT BRACKET LAYOUT -->
-            <div id="bracket-tab-full" class="p-6 hidden bg-slate-900 border-t border-slate-800 text-white overflow-x-auto">
-                <div class="min-w-[1000px] grid grid-cols-4 gap-6 p-4">
-                    
-                    <!-- Round of 32 Highlights -->
-                    <div class="space-y-4">
-                        <div class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 border-b border-slate-800 pb-1">Round of 32 (Sample Branch)</div>
-                        <!-- Match 1 -->
-                        <div class="bg-slate-800 border border-slate-700 rounded-lg p-2.5 text-xs space-y-1">
-                            <div class="flex justify-between text-slate-400"><span>Match 73</span><span class="text-emerald-400 font-bold">FT</span></div>
-                            <div class="flex justify-between"><span>🇿🇦 South Africa</span><span>0</span></div>
-                            <div class="flex justify-between font-bold text-emerald-400"><span>🇨🇦 Canada</span><span>1</span></div>
-                        </div>
-                        <!-- Match 2 -->
-                        <div class="bg-slate-800 border border-slate-700 rounded-lg p-2.5 text-xs space-y-1">
-                            <div class="flex justify-between text-slate-400"><span>Match 74</span><span class="text-emerald-400 font-bold">FT (P)</span></div>
-                            <div class="flex justify-between text-slate-400"><span>🇩🇪 Germany</span><span>1 (3)</span></div>
-                            <div class="flex justify-between font-bold text-emerald-400"><span>🇵🇾 Paraguay</span><span>1 (4)</span></div>
-                        </div>
-                        <!-- Match 3 -->
-                        <div class="bg-slate-800 border border-slate-700 rounded-lg p-2.5 text-xs space-y-1">
-                            <div class="flex justify-between text-slate-400"><span>Match 75</span><span class="text-emerald-400 font-bold">FT (P)</span></div>
-                            <div class="flex justify-between text-slate-400"><span>🇳🇱 Netherlands</span><span>1 (2)</span></div>
-                            <div class="flex justify-between font-bold text-emerald-400"><span>🇲🇦 Morocco</span><span>1 (3)</span></div>
-                        </div>
-                        <!-- Match 4 -->
-                        <div class="bg-slate-800 border border-slate-700 rounded-lg p-2.5 text-xs space-y-1">
-                            <div class="flex justify-between text-slate-400"><span>Match 76</span><span class="text-emerald-400 font-bold">FT</span></div>
-                            <div class="flex justify-between font-bold text-emerald-400"><span>🇧🇷 Brazil</span><span>2</span></div>
-                            <div class="flex justify-between text-slate-400"><span>🇯🇵 Japan</span><span>1</span></div>
-                        </div>
-                    </div>
+  <!-- 🏆 World Cup Interactive Live Bracket Status Card -->
+  <a href="https://fwc2026-knockout.vercel.app/" target="_blank" class="bracket-anchor">
+    <div class="bracket-card">
+      <div class="bracket-title-wrapper">
+        <div class="gallery-title" style="margin-bottom:0;">🏆 Live Bracket Status</div>
+        <span class="view-all-tag">View Full Bracket ↗</span>
+      </div>
+      
+      <div class="bracket-stage-title">Round of 32 Tracking</div>
+      <div class="mini-matchup">
+        <div>🇩🇪 Germany vs 🇵🇾 Paraguay</div>
+        <span class="m-live">LIVE NOW</span>
+      </div>
+      <div class="mini-matchup">
+        <div>🇺🇸 USA vs 🇧🇦 Bosnia &amp; Herzo.</div>
+        <span style="color:var(--muted)">Tonight 21:00</span>
+      </div>
 
-                    <!-- Round of 16 Bracket Hub -->
-                    <div class="space-y-12 pt-8">
-                        <div class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 border-b border-slate-800 pb-1">Round of 16 (Projections)</div>
-                        <!-- R16 - Match A -->
-                        <div class="bg-slate-800/80 border border-slate-700 rounded-lg p-3 text-xs space-y-2">
-                            <div class="text-[10px] text-amber-400 font-semibold uppercase">Match 89 • July 4</div>
-                            <div class="flex justify-between text-slate-300"><span>🇵🇾 Paraguay</span><span>—</span></div>
-                            <div class="flex justify-between text-slate-500"><span>Winner M77 (FRA/SWE)</span><span>—</span></div>
-                        </div>
-                        <!-- R16 - Match B -->
-                        <div class="bg-slate-800/80 border border-slate-700 rounded-lg p-3 text-xs space-y-2">
-                            <div class="text-[10px] text-amber-400 font-semibold uppercase">Match 90 • July 4</div>
-                            <div class="flex justify-between text-slate-300"><span>🇨🇦 Canada</span><span>—</span></div>
-                            <div class="flex justify-between text-slate-300"><span>🇲🇦 Morocco</span><span>—</span></div>
-                        </div>
-                    </div>
+      <div class="bracket-stage-title" style="color:var(--gold); border-left-color:var(--gold); margin-top:14px;">Round of 16 Secured paths</div>
+      <div class="mini-matchup">
+        <div>🇨🇦 Canada vs 🇲🇦 Morocco</div>
+        <span style="color:var(--green)">Locked Fix.</span>
+      </div>
+    </div>
+  </a>
 
-                    <!-- Quarterfinals -->
-                    <div class="space-y-24 pt-20">
-                        <div class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 border-b border-slate-800 pb-1">Quarterfinals</div>
-                        <div class="bg-slate-800/40 border border-slate-700/60 rounded-lg p-3 text-xs opacity-60">
-                            <div class="text-[10px] text-slate-500 font-semibold uppercase mb-1">Match 97 • July 9</div>
-                            <div class="text-slate-400">Winner Match 89</div>
-                            <div class="text-slate-400 mt-1">Winner Match 90</div>
-                        </div>
-                    </div>
+  <!-- Dropdown Rules Engine Guide -->
+  <div class="guide">
+    <div class="guide-header" onclick="this.nextElementSibling.classList.toggle('open')">
+      📖 Scoring Guide Definitions <span>▼</span>
+    </div>
+    <div class="guide-body">
+      <b>OG Predictions (pre-tournament)</b><br>
+      R32: +10 qualify · +10 matchup · +10 score<br>
+      R16: +10 qualify · +10 matchup · +10 score<br>
+      QF: +15 qualify · +10 matchup · +10 score<br>
+      SF: +20 qualify · +10 matchup · +10 score<br>
+      Final: +25 qualify · +10 score · +50 correct winner<br><br>
+      <b>New Predictions (live KO — R32 / R16 / QF)</b><br>
+      +5 correct qualifier · +10 correct score<br>
+      Penalty shootout scores are not counted.<br><br>
+      <b>Wagers (SF &amp; Final)</b><br>
+      Stake points before the match. Correct winner = +wager, wrong = −wager.
+    </div>
+  </div>
 
-                    <!-- Semifinals & Finals Hub -->
-                    <div class="space-y-24 pt-32">
-                        <div class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 border-b border-slate-800 pb-1">Road to MetLife Final</div>
-                        <div class="bg-gradient-to-r from-slate-800 to-emerald-950 border border-emerald-500/30 rounded-lg p-4 text-center">
-                            <i class="fa-solid fa-trophy text-amber-400 text-lg mb-1 animate-pulse"></i>
-                            <div class="text-[11px] font-bold text-emerald-400 tracking-wider uppercase">Grand Final</div>
-                            <div class="text-[10px] text-slate-400">July 19 • East Rutherford</div>
-                        </div>
-                    </div>
+</div>
 
-                </div>
-            </div>
-        </section>
+<script type="module">
+  import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+  import { getApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  const db2 = getDatabase(getApp());
 
-        <!-- VISUAL ORDER SWAPPED: HARRY (FIRST) BEFORE GARRY (SECOND) -->
-        <section class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            
-            <!-- HARRY'S CARD (FIRST POSITION) -->
-            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 relative overflow-hidden">
-                <div class="absolute top-0 left-0 right-0 h-1.5 bg-sky-500"></div>
-                <div class="flex justify-between items-start">
-                    <div>
-                        <span class="bg-sky-50 text-sky-700 text-xs font-bold px-2.5 py-1 rounded-md uppercase tracking-wider">Rank #1</span>
-                        <h3 class="text-2xl font-bold mt-2 text-slate-800">Harry's Intel Standings</h3>
-                    </div>
-                    <div class="text-right">
-                        <div class="text-xs font-bold text-slate-400 uppercase">Current Points</div>
-                        <div class="text-4xl font-black text-slate-900 tracking-tight">880</div>
-                    </div>
-                </div>
-                <div class="mt-6 grid grid-cols-3 gap-2 text-center bg-slate-50 p-3 rounded-xl border border-slate-100">
-                    <div>
-                        <div class="text-[10px] font-bold text-slate-400 uppercase">Exact Scores</div>
-                        <div class="text-base font-bold text-slate-800 mt-0.5">14</div>
-                    </div>
-                    <div>
-                        <div class="text-[10px] font-bold text-slate-400 uppercase">Correct Outcom.</div>
-                        <div class="text-base font-bold text-slate-800 mt-0.5">38</div>
-                    </div>
-                    <div>
-                        <div class="text-[10px] font-bold text-slate-400 uppercase">Accuracy Rate</div>
-                        <div class="text-base font-bold text-emerald-600 mt-0.5">64.2%</div>
-                    </div>
-                </div>
-            </div>
+  onValue(ref(db2, "/meta/gsLink"), snap => {
+    const url = snap.val() || "";
+    document.getElementById("gs-link").href = url || "#";
+  });
 
-            <!-- GARRY'S CARD (SECOND POSITION) -->
-            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 relative overflow-hidden">
-                <div class="absolute top-0 left-0 right-0 h-1.5 bg-indigo-500"></div>
-                <div class="flex justify-between items-start">
-                    <div>
-                        <span class="bg-indigo-50 text-indigo-700 text-xs font-bold px-2.5 py-1 rounded-md uppercase tracking-wider">Rank #2</span>
-                        <h3 class="text-2xl font-bold mt-2 text-slate-800">Garry's Intel Standings</h3>
-                    </div>
-                    <div class="text-right">
-                        <div class="text-xs font-bold text-slate-400 uppercase">Current Points</div>
-                        <div class="text-4xl font-black text-slate-900 tracking-tight">815</div>
-                    </div>
-                </div>
-                <div class="mt-6 grid grid-cols-3 gap-2 text-center bg-slate-50 p-3 rounded-xl border border-slate-100">
-                    <div>
-                        <div class="text-[10px] font-bold text-slate-400 uppercase">Exact Scores</div>
-                        <div class="text-base font-bold text-slate-800 mt-0.5">11</div>
-                    </div>
-                    <div>
-                        <div class="text-[10px] font-bold text-slate-400 uppercase">Correct Outcom.</div>
-                        <div class="text-base font-bold text-slate-800 mt-0.5">41</div>
-                    </div>
-                    <div>
-                        <div class="text-[10px] font-bold text-slate-400 uppercase">Accuracy Rate</div>
-                        <div class="text-base font-bold text-indigo-600 mt-0.5">59.8%</div>
-                    </div>
-                </div>
-            </div>
-        </section>
+  const obs = new MutationObserver(() => {
+    document.getElementById("lb-harry-total2").textContent = document.getElementById("lb-harry-total").textContent;
+    document.getElementById("lb-garry-total2").textContent = document.getElementById("lb-garry-total").textContent;
+  });
+  obs.observe(document.getElementById("lb-harry-total"), { childList:true, characterData:true, subtree:true });
+  obs.observe(document.getElementById("lb-garry-total"), { childList:true, characterData:true, subtree:true });
+</script>
 
-        <!-- PREDICTION COMPARISON MATRIX WITH INLINE TRACKING LINKS -->
-        <section class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-            <div class="p-6 border-b border-slate-100 bg-slate-50">
-                <h3 class="text-lg font-bold text-slate-800">Prediction Blueprint Breakdown</h3>
-                <p class="text-xs text-slate-500 mt-0.5">Direct comparative matrix mapping global tournament approaches.</p>
-            </div>
-            <div class="overflow-x-auto">
-                <table class="w-full text-left border-collapse">
-                    <thead>
-                        <tr class="bg-slate-100/70 border-b border-slate-200 text-slate-400 text-[11px] font-bold uppercase tracking-wider">
-                            <th class="py-3.5 px-6">Strategy Dimension</th>
-                            <th class="py-3.5 px-6 text-sky-800 bg-sky-50/50">Harry's Setup (1st)</th>
-                            <th class="py-3.5 px-6 text-indigo-800 bg-indigo-50/50">Garry's Setup (2nd)</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-slate-200 text-sm">
-                        <!-- OG Prediction Row with Mini Links -->
-                        <tr class="hover:bg-slate-50/80 transition-colors">
-                            <td class="py-4 px-6 font-semibold text-slate-800">
-                                <div>OG Predictions Strategy</div>
-                                <div class="mt-1.5 flex gap-3 text-[11px]">
-                                    <a href="/sheets/harry-og" class="text-sky-600 hover:text-sky-800 hover:underline font-medium flex items-center gap-1">
-                                        <i class="fa-solid fa-file-excel text-[10px]"></i> Harry's Sheet
-                                    </a>
-                                    <a href="/sheets/garry-og" class="text-indigo-600 hover:text-indigo-800 hover:underline font-medium flex items-center gap-1">
-                                        <i class="fa-solid fa-file-excel text-[10px]"></i> Garry's Sheet
-                                    </a>
-                                </div>
-                            </td>
-                            <td class="py-4 px-6 text-slate-600 bg-sky-50/20">Heavy focus on Elo metric baselines; highly conservative group phase outcomes.</td>
-                            <td class="py-4 px-6 text-slate-600 bg-indigo-50/20">Aggressive underdog backing layout; prioritizing tournament variance.</td>
-                        </tr>
-                        <!-- New Prediction Row with Mini Links -->
-                        <tr class="hover:bg-slate-50/80 transition-colors">
-                            <td class="py-4 px-6 font-semibold text-slate-800">
-                                <div>New Predictions Adaptation</div>
-                                <div class="mt-1.5 flex gap-3 text-[11px]">
-                                    <a href="/sheets/harry-new" class="text-sky-600 hover:text-sky-800 hover:underline font-medium flex items-center gap-1">
-                                        <i class="fa-solid fa-arrow-rotate-right text-[10px]"></i> Harry's Live Model
-                                    </a>
-                                    <a href="/sheets/garry-new" class="text-indigo-600 hover:text-indigo-800 hover:underline font-medium flex items-center gap-1">
-                                        <i class="fa-solid fa-arrow-rotate-right text-[10px]"></i> Garry's Live Model
-                                    </a>
-                                </div>
-                            </td>
-                            <td class="py-4 px-6 text-slate-600 bg-sky-50/20">Adjusted to penalize historical underperformers based on June xG tracking data.</td>
-                      
+</body>
+</html>
