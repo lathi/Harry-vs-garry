@@ -135,7 +135,7 @@ window.nudge = async (player, cat, delta) => {
   .score-table { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; margin-bottom: 20px; }
   .table-header { display: grid; grid-template-columns: 1.2fr 1fr 1fr; background: var(--surface2); padding: 12px 16px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--text2); border-bottom: 1px solid var(--border); }
   .table-header .col-mid { text-align: center; color: var(--harry); }
-  .table-header .col-right { text-align: right; color: var(--garry); }
+  .table-header .col-right { text-align: center; color: var(--garry); }
   
   .score-row { display: grid; grid-template-columns: 1.2fr 1fr 1fr; align-items: center; padding: 14px 16px; border-bottom: 1px solid var(--border); gap: 6px; }
   .score-row:last-child { border-bottom: none; }
@@ -224,7 +224,7 @@ window.nudge = async (player, cat, delta) => {
     <div class="table-header">
       <div>Category Breakdown</div>
       <div class="col-mid">Harry Pts</div>
-      <div class="col-mid">Garry Pts</div>
+      <div class="col-right">Garry Pts</div>
     </div>
 
     <!-- Group Stage Tier -->
